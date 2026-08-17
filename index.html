@@ -1,0 +1,3019 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kangi</title>
+<style>
+/* 밝은 화면이 기본. 시스템이 다크 모드여도 따라가지 않는다.
+   야간 모드는 상단 버튼으로 직접 켤 때만 적용된다. */
+:root{
+  /* 껍데기 — 초록은 여기에만 (책상·상단바·하단바) */
+  --chrome:#17795a;
+  --chrome-ink:#f7fcf9;
+  --chrome-soft:#e0f2e9;
+  --chrome-line:rgba(255,255,255,.24);
+  --chrome-fill:rgba(255,255,255,.13);
+  --chrome-accent:#cbf5e2;
+
+  /* 지면 — 밝고 중립적인 종이. 글자는 초록기 없이 */
+  --paper:#f5f7f4;
+  --block:#e9ede8;
+  --ink:#1d2124;
+  --ink-soft:#4c5257;
+  --ink-faint:#646a6e;
+  --line:#dde2dc;
+  --line-soft:#ebefe9;
+  --accent:#00704a;    /* 구조에만 쓰는 초록 — 주제 구분선·책갈피 */
+  --accent-soft:#dfeee6;
+  --jp:#14181b;
+  --ko:#545c62;        /* 예문 해석 — 눈에 안 튀는 회색 */
+  --badge:#e9ede8;
+  --gutter:rgba(20,40,30,.15);
+  --scrim:rgba(15,30,22,.45);
+  --shadow:0 14px 40px rgba(5,40,25,.26), 0 3px 10px rgba(5,40,25,.16);
+}
+:root[data-theme="dark"]{
+  --chrome:#0d3b2c;
+  --chrome-ink:#eaf5ef;
+  --chrome-soft:#b5d4c5;
+  --chrome-line:rgba(255,255,255,.14);
+  --chrome-fill:rgba(255,255,255,.08);
+  --chrome-accent:#8fe0bb;
+
+  --paper:#171a1c;
+  --block:#1f2326;
+  --ink:#e5e8ea;
+  --ink-soft:#a5abb0;
+  --ink-faint:#868d92;
+  --line:#2c3134;
+  --line-soft:#23282b;
+  --accent:#4fbb8b;
+  --accent-soft:#1b2a23;
+  --jp:#f2f5f7;
+  --ko:#9aa3aa;
+  --badge:#22272a;
+  --gutter:rgba(0,0,0,.5);
+  --scrim:rgba(0,0,0,.55);
+  --shadow:0 14px 40px rgba(0,0,0,.5), 0 3px 10px rgba(0,0,0,.32);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; height:100dvh; overflow:hidden;
+  display:flex; flex-direction:column;
+  background:var(--chrome); color:var(--ink);
+  font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",
+              "Yu Gothic","Meiryo","Hiragino Kaku Gothic ProN","Noto Sans JP",
+              system-ui,-apple-system,sans-serif;
+  line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.jp{font-family:"Yu Gothic","YuGothic","Meiryo","Hiragino Kaku Gothic ProN","Noto Sans JP","MS PGothic",sans-serif}
+button{font-family:inherit}
+:focus-visible{outline:2px solid currentColor; outline-offset:2px}
+
+/* ================= 상단 바 ================= */
+.topbar{
+  flex:none; display:flex; align-items:center; gap:10px;
+  padding:9px 16px; border-bottom:1px solid var(--chrome-line);
+  background:var(--chrome); color:var(--chrome-ink);
+}
+.brand{font-weight:700; font-size:16px; letter-spacing:.02em; white-space:nowrap}
+.modes{
+  display:flex; gap:2px; margin-right:auto; flex:none;
+  background:var(--chrome-fill); border:1px solid var(--chrome-line);
+  border-radius:9px; padding:2px;
+}
+.mbtn{
+  border:none; background:none; color:var(--chrome-soft);
+  font-size:12.5px; padding:5px 13px; border-radius:7px; cursor:pointer; white-space:nowrap;
+}
+.mbtn.on{background:var(--chrome-ink); color:var(--chrome); font-weight:600}
+.brand em{font-style:normal; color:var(--chrome-accent); font-size:12px; margin-left:6px; letter-spacing:.08em}
+.rate{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--chrome-soft); white-space:nowrap}
+.rate input[type=range]{width:88px; accent-color:var(--chrome-accent)}
+.rate .v{font-variant-numeric:tabular-nums; width:30px}
+.tbtn{
+  border:1px solid var(--chrome-line); background:var(--chrome-fill); color:var(--chrome-ink);
+  border-radius:8px; padding:6px 11px; font-size:13px; cursor:pointer; line-height:1.4;
+  display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+}
+.tbtn svg{width:14px; height:14px}
+
+/* ================= 무대 / 책 ================= */
+.stage{flex:1; min-height:0; padding:16px; display:flex}
+.spread{
+  flex:1; min-height:0; display:flex;
+  background:var(--paper); border:1px solid var(--line);
+  border-radius:14px; box-shadow:var(--shadow); overflow:hidden;
+  max-width:1180px; margin:0 auto; width:100%;
+}
+.page{flex:1; min-width:0; display:flex; flex-direction:column; position:relative}
+.spread .page + .page{
+  border-left:1px solid var(--line);
+  box-shadow:inset 14px 0 22px -18px var(--gutter);
+}
+.spread .page:first-child:not(:only-child){box-shadow:inset -14px 0 22px -18px var(--gutter)}
+
+.running{
+  flex:none; display:flex; align-items:baseline; gap:8px;
+  padding:14px 24px 9px; border-bottom:1px solid var(--line-soft);
+  font-size:12px; letter-spacing:.09em; color:var(--ink-faint); text-transform:uppercase;
+}
+.running b{font-weight:600; color:var(--ink-soft); letter-spacing:.02em; text-transform:none; font-size:13px}
+.running .range{margin-left:auto; font-variant-numeric:tabular-nums; letter-spacing:.02em}
+
+.page-body{flex:1; min-height:0; overflow:hidden; padding:2px 24px 6px}
+/* 항목 하나가 쪽보다 큰 화면(아주 낮은 가로 화면 등)에서만 예외로 스크롤을 연다.
+   조용히 잘리는 것보다 낫다. */
+.page-body.scrollable{overflow-y:auto; overscroll-behavior:contain}
+.folio{
+  flex:none; text-align:center; padding:8px 0 12px;
+  font-size:11.5px; color:var(--ink-faint); font-variant-numeric:tabular-nums;
+  letter-spacing:.14em; border-top:1px solid var(--line-soft);
+}
+
+/* ================= 단어 항목 ================= */
+.sec-break{
+  display:flex; align-items:center; gap:10px;
+  margin:14px 0 2px; font-size:12px; font-weight:600; color:var(--accent);
+  letter-spacing:.02em;
+}
+.sec-break::after{content:""; flex:1; height:1px; background:var(--line)}
+
+.entry{padding:11px 0 12px; border-bottom:1px solid var(--line-soft)}
+.entry:last-child{border-bottom:none}
+.e-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.num{font-size:11px; color:var(--ink-faint); font-variant-numeric:tabular-nums; flex:none}
+.word{font-size:22px; font-weight:600; color:var(--jp); line-height:1.35}
+.read{font-size:14px; color:var(--ink-soft)}
+.pos{font-size:10px; color:var(--ink-faint); background:var(--badge); border-radius:4px; padding:2px 6px; flex:none}
+.mean{font-size:15px; font-weight:500; margin:1px 0 0 0}
+.ex{margin-top:7px; padding:8px 11px; background:var(--block); border-radius:8px; border:1px solid var(--line-soft)}
+.ex-jp{font-size:15px; color:var(--jp); display:flex; align-items:flex-start; gap:7px; line-height:1.6}
+.ex-kana{font-size:14px; color:var(--ink-soft); margin-top:4px; line-height:1.55}
+
+/* 한자에 마우스를 올리면 읽기가 뜬다. 아래 가나 줄에서 해당 부분도 같이 밝아진다.
+   말풍선은 절대 위치라 줄 높이를 건드리지 않는다 — 쪽 나눔이 흔들리면 안 되므로. */
+.kj{position:relative; cursor:help; border-bottom:1px dotted var(--line)}
+.kj::after{
+  content:attr(data-r);
+  position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%);
+  background:var(--ink); color:var(--paper);
+  font-size:12.5px; line-height:1.35; padding:3px 8px; border-radius:6px;
+  white-space:nowrap; pointer-events:none; z-index:5;
+  opacity:0; transition:opacity .12s;
+}
+.kj.on{border-bottom-color:var(--accent); color:var(--accent)}
+.kj.on::after{opacity:1}
+/* 좌우 패딩을 주면 안 된다 — 인라인 스팬의 가로 크기가 달라져 줄바꿈이 바뀌고,
+   쪽 높이를 평문으로 재는 최적화가 어긋난다. 배경만으로 강조한다. */
+.kr{border-radius:3px}
+.kr.lit{background:var(--accent-soft); color:var(--accent); font-weight:600}
+@media (prefers-reduced-motion:reduce){.kj::after{transition:none}}
+.ex-ko{font-size:13.5px; color:var(--ko); margin-top:4px; line-height:1.5}
+
+/* ---- 표지 ---- */
+.cover-page{display:flex; align-items:center; justify-content:center}
+.entry.cover{
+  border:none; padding:0; width:100%; text-align:center;
+  display:flex; flex-direction:column; align-items:center;
+}
+.cv-no{
+  font-size:15px; font-weight:700; color:var(--accent);
+  letter-spacing:.22em; margin-bottom:16px;
+}
+.cv-t{font-size:34px; font-weight:700; color:var(--jp); margin:0; letter-spacing:-.01em; line-height:1.2}
+.cv-sub{font-size:15px; color:var(--ink-soft); margin-top:6px}
+.cv-rule{width:48px; height:2px; background:var(--accent); margin:18px 0}
+.cv-lead{font-size:14.5px; line-height:1.7; color:var(--ink); max-width:32ch; margin:0 0 18px}
+.cv-list{list-style:none; margin:0 0 20px; padding:0; text-align:left; display:flex; flex-direction:column; gap:6px}
+.cv-list li{font-size:13.5px; color:var(--ink-soft); padding-left:19px; position:relative}
+.cv-list li::before{content:"—"; position:absolute; left:0; color:var(--accent)}
+.cv-meta{font-size:11.5px; color:var(--ink-faint); letter-spacing:.1em}
+.cv-peek{display:flex; flex-wrap:wrap; justify-content:center; gap:6px; max-width:30ch}
+.cv-peek span{
+  font-size:13.5px; color:var(--ink-soft);
+  background:var(--block); border:1px solid var(--line);
+  border-radius:999px; padding:4px 11px;
+}
+@media (max-height:620px){
+  .cv-t{font-size:27px}
+  .cv-rule{margin:13px 0}
+  .cv-lead{margin-bottom:13px}
+  .cv-list{gap:4px; margin-bottom:14px}
+}
+@media (max-height:580px){
+  .cv-no{margin-bottom:10px; font-size:13px}
+  .cv-t{font-size:24px}
+  .cv-sub{font-size:13.5px}
+  .cv-rule{margin:10px 0}
+  .cv-lead{font-size:13.5px; line-height:1.6; margin-bottom:10px}
+  .cv-list li{font-size:12.5px}
+  .cv-list{gap:3px; margin-bottom:10px}
+}
+/* 폰 가로처럼 세로가 아주 짧을 때. 표지는 '어느 장이 시작되는지'만 알려주면 되므로
+   미리보기와 항목 목록은 접는다. 안 접으면 잘린다. */
+@media (max-height:480px){
+  .cv-no{margin-bottom:5px; font-size:11.5px}
+  .cv-t{font-size:20px}
+  .cv-sub{font-size:12px; margin-top:2px}
+  .cv-rule{width:34px; margin:8px 0}
+  .cv-lead{font-size:12.5px; line-height:1.5; margin-bottom:0; max-width:52ch}
+  .cv-peek, .cv-list, .cv-meta{display:none}
+}
+
+/* ---- 설명 카드 ---- */
+.entry.note{
+  background:var(--accent-soft); border:1px solid var(--line);
+  border-left:3px solid var(--accent); border-radius:0 10px 10px 0;
+  padding:13px 15px; margin:2px 0;
+}
+.note-t{margin:0 0 7px; font-size:14.5px; font-weight:700; color:var(--accent); letter-spacing:-.01em}
+.note-p{margin:0 0 6px; font-size:13.5px; line-height:1.62; color:var(--ink)}
+.note-p:last-of-type{margin-bottom:0}
+.nrows{margin-top:9px; display:flex; flex-direction:column; gap:5px}
+.nrow{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+.ncell{
+  font-size:13.5px; background:var(--paper); border:1px solid var(--line);
+  border-radius:6px; padding:3px 9px; color:var(--ink);
+}
+.ncell.last{font-weight:600; border-color:var(--accent); color:var(--accent)}
+.narrow{color:var(--ink-faint); font-size:12px}
+
+/* ---- 짝 카드 (타동사 ↔ 자동사) ---- */
+.entry.pair .p-arrow{color:var(--ink-faint); font-size:15px}
+.prow{display:flex; gap:9px; margin-top:9px}
+.ptag{
+  flex:none; width:22px; height:22px; border-radius:6px; margin-top:2px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700;
+}
+.ptag.tr{background:var(--accent); color:var(--paper)}
+.ptag.itr{background:var(--badge); color:var(--ink-soft); border:1px solid var(--line)}
+.pmain{flex:1; min-width:0}
+.pline{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+.pline b{font-size:18px; font-weight:600; color:var(--jp)}
+.entry.pair .mean-inline{font-size:13.5px; color:var(--ink-soft)}
+.entry.pair .ex{margin-top:5px}
+
+/* ---- 활용 카드 ---- */
+.entry.conj .mean-inline{font-size:13.5px; color:var(--ink-soft)}
+.chain{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-top:9px; padding:9px 11px;
+  background:var(--accent-soft); border:1px solid var(--line); border-radius:8px;
+}
+.step{display:flex; flex-direction:column; line-height:1.25}
+.step b{font-size:17px; font-weight:600; color:var(--ink)}
+.step em{font-style:normal; font-size:10.5px; color:var(--ink-faint); margin-top:2px}
+.step.hit b{color:var(--accent)}
+.step.hit em{color:var(--accent); opacity:.8}
+.carrow{color:var(--ink-faint); font-size:13px; align-self:flex-start; margin-top:4px}
+.chain .spk{margin-left:auto; align-self:center}
+
+/* ---- 형용사 활용 카드 ---- */
+/* 네 형태(현재·부정·과거·과거부정)를 한눈에 두는 게 목적이라 표처럼 깐다.
+   폭은 화면이 아니라 '지면'이 정하므로 auto-fit으로 담는 칸이 알아서 접히게 한다.
+   (펼침면에서는 지면이 화면의 절반이라 미디어쿼리로는 맞출 수 없다) */
+.entry.adjc .mean-inline{font-size:13.5px; color:var(--ink-soft)}
+.fgrid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(178px, 1fr));
+  gap:6px; margin-top:9px;
+}
+.fcell{
+  display:flex; align-items:flex-start; gap:6px; min-width:0;
+  padding:7px 9px; background:var(--accent-soft);
+  border:1px solid var(--line); border-radius:8px;
+}
+.ftxt{flex:1; min-width:0}
+.fcell em{display:block; font-style:normal; font-size:10.5px; color:var(--ink-faint)}
+.fcell b{display:block; font-size:16px; font-weight:600; color:var(--ink); line-height:1.32; margin-top:1px}
+.fcell .fr{display:block; font-size:11.5px; color:var(--ink-faint); line-height:1.4}
+.fcell .spk{margin-top:2px}
+.fcell.hit{border-color:var(--accent)}
+.fcell.hit b{color:var(--accent)}
+
+.entry.marked{
+  background:linear-gradient(90deg, var(--accent-soft), transparent 70%);
+  box-shadow:inset 3px 0 0 var(--accent);
+  padding-left:11px; margin-left:-11px; border-radius:0 6px 6px 0;
+}
+@keyframes flash{0%,100%{background-color:transparent} 20%,60%{background-color:var(--accent-soft)}}
+.entry.flash{animation:flash 1.5s ease-in-out}
+@media (prefers-reduced-motion:reduce){.entry.flash{animation:none; outline:2px solid var(--accent)}}
+
+/* 아이콘 버튼 */
+.ibtn{
+  flex:none; border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+  border-radius:50%; width:24px; height:24px; padding:0; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:background .12s, border-color .12s, color .12s;
+}
+.ibtn svg{width:12px; height:12px; display:block}
+.spk.playing{background:var(--accent); border-color:var(--accent); color:#fff}
+.mark{margin-left:auto}
+.mark.on{color:var(--accent); border-color:var(--accent); background:var(--accent-soft)}
+.mark.on svg{fill:currentColor}
+
+/* ================= 하단 조작 ================= */
+.controls{
+  flex:none; display:flex; align-items:center; justify-content:center; gap:14px;
+  padding:9px 16px calc(9px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--chrome-line);
+  background:var(--chrome); color:var(--chrome-ink);
+}
+.pbtn{
+  border:1px solid var(--chrome-line); background:var(--chrome-fill); color:var(--chrome-ink);
+  border-radius:9px; padding:7px 18px; font-size:14px; cursor:pointer;
+}
+.pbtn:disabled{opacity:.35; cursor:default}
+.pageno{font-size:13px; color:var(--chrome-soft); font-variant-numeric:tabular-nums; min-width:82px; text-align:center}
+.pageno b{color:var(--chrome-ink); font-weight:600}
+
+/* ================= 서랍 ================= */
+.scrim{
+  position:fixed; inset:0; z-index:80; background:var(--scrim);
+  opacity:0; pointer-events:none; transition:opacity .18s;
+}
+.scrim.open{opacity:1; pointer-events:auto}
+.drawer{
+  position:fixed; z-index:90; top:0; right:0; height:100dvh; width:min(380px,88vw);
+  background:var(--paper); border-left:1px solid var(--line);
+  transform:translateX(100%); transition:transform .22s ease;
+  display:flex; flex-direction:column;
+}
+.drawer.open{transform:none}
+@media (prefers-reduced-motion:reduce){.drawer,.scrim{transition:none}}
+.drawer-head{flex:none; display:flex; gap:6px; padding:12px 12px 0; border-bottom:1px solid var(--line)}
+.dtab{
+  border:none; background:none; color:var(--ink-faint); cursor:pointer;
+  padding:9px 13px; font-size:13.5px; border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.dtab.on{color:var(--accent); border-bottom-color:var(--accent); font-weight:600}
+.dclose{margin-left:auto; border:none; background:none; color:var(--ink-faint); cursor:pointer; font-size:20px; padding:6px 10px}
+.drawer-body{flex:1; min-height:0; overflow-y:auto; padding:10px 12px 24px}
+.qbox{flex:none; padding:10px 12px 0; display:none}
+.qbox.on{display:block}
+.qbox input{
+  width:100%; padding:9px 12px; font-size:14px; font-family:inherit;
+  border:1px solid var(--line); border-radius:9px;
+  background:var(--block); color:var(--ink);
+}
+.qbox input:focus{outline:none; border-color:var(--accent)}
+.qcount{font-size:12px; color:var(--ink-faint); margin:0 0 8px; padding:0 2px}
+.dlink .tag{
+  font-size:10px; color:var(--accent); background:var(--accent-soft);
+  border-radius:4px; padding:2px 6px; margin-left:6px; white-space:nowrap;
+}
+
+.dlink{
+  display:flex; align-items:baseline; gap:10px; width:100%; text-align:left;
+  padding:10px 12px; border:1px solid var(--line); background:var(--paper); color:var(--ink);
+  border-radius:9px; font-size:14px; cursor:pointer; margin-bottom:6px;
+}
+.dlink .p{margin-left:auto; font-size:11.5px; color:var(--ink-faint); font-variant-numeric:tabular-nums; white-space:nowrap}
+.dlink .p.alt{
+  color:var(--accent); background:var(--accent-soft);
+  border-radius:4px; padding:2px 7px; font-weight:600;
+}
+.dlink .sub{font-size:12px; color:var(--ink-soft)}
+.dlink .jpw{font-size:16px; font-weight:600}
+.dempty{color:var(--ink-faint); font-size:13.5px; line-height:1.8; padding:14px 4px}
+
+.notice{
+  margin:0 16px 10px; padding:10px 13px; font-size:12.5px; color:var(--ink-soft);
+  background:var(--accent-soft); border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px;
+}
+.notice.hidden{display:none}
+
+/* 좁은 화면에서는 상단바를 단계적으로 줄인다.
+   모드 전환(단어/문법)은 끝까지 남긴다 — 없으면 문법에 갈 방법이 없다. */
+@media (max-width:600px){
+  .topbar{gap:6px; padding:9px 10px}
+  .tbtn .lbl{display:none}
+  .tbtn{padding:7px 8px}
+  .brand em{display:none}
+  .mbtn{padding:5px 9px; font-size:12px}
+  .rate input[type=range]{width:44px}
+}
+@media (max-width:420px){
+  .brand{display:none}
+}
+@media (max-width:760px){
+  .stage{padding:10px}
+  .running{padding:11px 15px 8px}
+  .page-body{padding:2px 15px 6px}
+  .rate .lbl,.rate .v{display:none}
+  .rate input[type=range]{width:64px}
+  .word{font-size:20px}
+  .brand{font-size:15px}
+  .tbtn{padding:6px 9px}
+}
+
+/* 폰 가로처럼 세로가 짧을 때. 390px 중 상·하단바가 105px를 먹으면
+   읽을 자리가 남지 않는다. 껍데기와 항목을 함께 조인다. */
+@media (max-height:480px){
+  .topbar{padding:5px 12px}
+  .controls{padding:5px 16px calc(5px + env(safe-area-inset-bottom)); gap:10px}
+  .pbtn{padding:5px 14px; font-size:13px}
+  .stage{padding:8px}
+  .running{padding:8px 16px 6px}
+  .page-body{padding:2px 16px 4px}
+  .folio{padding:4px 0 6px; font-size:10.5px}
+
+  .entry{padding:8px 0 9px}
+  .word{font-size:19px}
+  .mean{font-size:14px}
+  .ex{margin-top:5px; padding:6px 9px}
+  .ex-jp{font-size:14px; line-height:1.5}
+  .ex-kana{font-size:12.5px; line-height:1.45}
+  .ex-ko{font-size:12.5px; line-height:1.45}
+  .note-p{font-size:12.5px; line-height:1.5}
+  .chain{margin-top:6px; padding:7px 9px}
+}
+
+@media (max-height:400px){
+  .topbar{padding:4px 12px}
+  .controls{padding:4px 16px calc(4px + env(safe-area-inset-bottom))}
+  .stage{padding:6px}
+  .running{padding:6px 14px 5px; font-size:11px}
+  .folio{padding:3px 0 5px}
+  .entry{padding:6px 0 7px}
+  .word{font-size:18px}
+  .mean{font-size:13.5px}
+  .ex{margin-top:4px; padding:5px 8px}
+  .ex-jp{font-size:13.5px}
+  .ex-kana{font-size:12px}
+  .ex-ko{font-size:12px}
+}
+
+/* ================= 입력 장치별 ================= */
+/* 마우스가 있을 때만 hover. 터치에서는 탭한 뒤 hover가 남아 눌린 것처럼 보인다. */
+@media (hover:hover){
+  .mbtn:hover{color:var(--chrome-ink)}
+  .tbtn:hover{border-color:var(--chrome-accent); color:var(--chrome-accent)}
+  .ibtn:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+  .pbtn:hover:not(:disabled){border-color:var(--chrome-accent); color:var(--chrome-accent)}
+  .dclose:hover{color:var(--accent)}
+  .dlink:hover{border-color:var(--accent); color:var(--accent)}
+  .kj:hover{border-bottom-color:var(--accent); color:var(--accent)}
+  .kj:hover::after{opacity:1}
+}
+/* 손가락으로 누르는 화면에서는 표적을 키운다 */
+@media (pointer:coarse){
+  .ibtn{width:30px; height:30px}
+  .ibtn svg{width:14px; height:14px}
+  .pbtn{padding:11px 20px; font-size:15px}
+  .tbtn{padding:9px 11px}
+  .mbtn{padding:8px 13px}
+  .dlink{padding:13px 12px}
+  .dtab{padding:12px 15px}
+  .dclose{padding:10px 12px}
+  .rate input[type=range]{height:24px}
+}
+
+@media print{
+  body{height:auto; overflow:visible; background:#fff; color:#000; display:block}
+  .topbar,.controls,.drawer,.scrim,.notice,.ibtn{display:none !important}
+  .stage{display:block; padding:0}
+  .spread{display:block; box-shadow:none; border:none; max-width:none}
+  .page{display:block; height:auto; border:none !important; box-shadow:none !important}
+  .page-body{display:block; overflow:visible; height:auto; padding:0}
+  .sec-break{break-after:avoid; margin-top:18px}
+  .entry{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Kangi<em>N5</em></div>
+  <div class="modes" role="group" aria-label="보기 전환">
+    <button class="mbtn on" data-mode="word" type="button">단어</button>
+    <button class="mbtn" data-mode="grammar" type="button">문법</button>
+  </div>
+  <label class="rate">
+    <span class="lbl">속도</span>
+    <input type="range" id="rate" min="0.5" max="1.2" step="0.05" value="0.9" aria-label="발음 속도">
+    <span class="v" id="rateVal">0.90</span>
+  </label>
+  <button class="tbtn" id="searchBtn" type="button" aria-label="단어 검색">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <span class="lbl">검색</span>
+  </button>
+  <button class="tbtn" id="drawerBtn" type="button" aria-label="목차와 책갈피 열기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span class="lbl">목차</span>
+  </button>
+  <button class="tbtn" id="themeBtn" type="button">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    <span class="lbl" id="themeLabel">야간</span>
+  </button>
+</div>
+
+<div class="notice hidden" id="voiceWarn"></div>
+
+<div class="stage">
+  <div class="spread" id="spread"></div>
+</div>
+
+<div class="controls">
+  <button class="pbtn" id="prev" type="button">◀ 이전</button>
+  <div class="pageno" id="pageno"></div>
+  <button class="pbtn" id="next" type="button">다음 ▶</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="목차와 책갈피">
+  <div class="drawer-head">
+    <button class="dtab on" data-tab="toc" type="button">목차</button>
+    <button class="dtab" data-tab="marks" type="button">책갈피</button>
+    <button class="dtab" data-tab="search" type="button">검색</button>
+    <button class="dclose" id="dclose" type="button" aria-label="닫기">×</button>
+  </div>
+  <div class="qbox" id="qbox">
+    <input type="search" id="q" placeholder="단어 · 히라가나 · 한국어 뜻" autocomplete="off" aria-label="단어 검색">
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script>
+/* ============================================================
+   데이터
+   w:단어 r:읽기 k:뜻 p:품사 / e:예문 ek:예문읽기 eo:예문뜻
+   ============================================================ */
+const DATA = [
+{
+  t:"인사 · 기본 표현",
+  items:[
+    {cover:true, no:"주제 01", t:"인사 · 기본 표현",
+     lead:"만나고 헤어지고 고맙다고 말하는, 가장 먼저 입에 붙어야 할 말.",
+     peek:["おはようございます","すみません","お疲れ様です","かしこまりました"]},
+    {w:"おはようございます",r:"おはようございます",k:"안녕하세요 (아침)",p:"인사",e:"おはようございます。今日もよろしくお願いします。",ek:"おはようございます。きょうもよろしくおねがいします。",eo:"좋은 아침입니다. 오늘도 잘 부탁드립니다."},
+    {w:"こんにちは",r:"こんにちは",k:"안녕하세요 (낮)",p:"인사",e:"こんにちは、いい天気ですね。",ek:"こんにちは、いいてんきですね。",eo:"안녕하세요, 날씨 좋네요."},
+    {w:"こんばんは",r:"こんばんは",k:"안녕하세요 (저녁)",p:"인사",e:"こんばんは。今お帰りですか。",ek:"こんばんは。いまおかえりですか。",eo:"안녕하세요. 지금 퇴근하세요?"},
+    {w:"さようなら",r:"さようなら",k:"안녕히 가세요",p:"인사",e:"では、さようなら。また来週。",ek:"では、さようなら。またらいしゅう。",eo:"그럼, 안녕히 가세요. 다음 주에 봬요."},
+    {w:"おやすみなさい",r:"おやすみなさい",k:"안녕히 주무세요",p:"인사",e:"もう遅いので、おやすみなさい。",ek:"もうおそいので、おやすみなさい。",eo:"늦었으니 안녕히 주무세요."},
+    {w:"ありがとうございます",r:"ありがとうございます",k:"감사합니다",p:"인사",e:"手伝ってくれてありがとうございます。",ek:"てつだってくれてありがとうございます。",eo:"도와주셔서 감사합니다."},
+    {w:"どういたしまして",r:"どういたしまして",k:"천만에요",p:"인사",e:"いいえ、どういたしまして。",ek:"いいえ、どういたしまして。",eo:"아니에요, 천만에요."},
+    {w:"すみません",r:"すみません",k:"실례합니다 / 죄송합니다",p:"표현",e:"すみません、これはいくらですか。",ek:"すみません、これはいくらですか。",eo:"저기요, 이거 얼마예요?"},
+    {w:"ごめんなさい",r:"ごめんなさい",k:"미안합니다",p:"표현",e:"遅くなってごめんなさい。",ek:"おそくなってごめんなさい。",eo:"늦어서 미안해요."},
+    {w:"お願いします",r:"おねがいします",k:"부탁합니다 / 주세요",p:"표현",e:"コーヒーを一つお願いします。",ek:"コーヒーをひとつおねがいします。",eo:"커피 하나 주세요."},
+    {w:"はい",r:"はい",k:"네",p:"응답",e:"はい、大丈夫です。",ek:"はい、だいじょうぶです。",eo:"네, 괜찮습니다."},
+    {w:"いいえ",r:"いいえ",k:"아니요",p:"응답",e:"いいえ、まだ終わっていません。",ek:"いいえ、まだおわっていません。",eo:"아니요, 아직 안 끝났어요."},
+    {w:"失礼します",r:"しつれいします",k:"실례하겠습니다",p:"표현",e:"お先に失礼します。",ek:"おさきにしつれいします。",eo:"먼저 들어가 보겠습니다. (퇴근 인사)"},
+    {w:"いただきます",r:"いただきます",k:"잘 먹겠습니다",p:"표현",e:"では、いただきます。",ek:"では、いただきます。",eo:"그럼, 잘 먹겠습니다."},
+    {w:"ごちそうさまでした",r:"ごちそうさまでした",k:"잘 먹었습니다",p:"표현",e:"ごちそうさまでした。おいしかったです。",ek:"ごちそうさまでした。おいしかったです。",eo:"잘 먹었습니다. 맛있었어요."},
+    {w:"お疲れ様です",r:"おつかれさまです",k:"수고하십니다",p:"표현",e:"お疲れ様です。今日はここまでにしましょう。",ek:"おつかれさまです。きょうはここまでにしましょう。",eo:"수고하셨습니다. 오늘은 여기까지 하죠."},
+    {w:"はじめまして",r:"はじめまして",k:"처음 뵙겠습니다",p:"인사",e:"はじめまして、田中と申します。",ek:"はじめまして、たなかともうします。",eo:"처음 뵙겠습니다, 다나카라고 합니다."},
+    {w:"よろしくお願いします",r:"よろしくおねがいします",k:"잘 부탁드립니다",p:"표현",e:"これからよろしくお願いします。",ek:"これからよろしくおねがいします。",eo:"앞으로 잘 부탁드립니다."},
+    {w:"お久しぶりです",r:"おひさしぶりです",k:"오랜만입니다",p:"인사",e:"お久しぶりです。お変わりありませんか。",ek:"おひさしぶりです。おかわりありませんか。",eo:"오랜만입니다. 별일 없으시죠?"},
+    {w:"いってきます",r:"いってきます",k:"다녀오겠습니다",p:"인사",e:"じゃあ、いってきます。",ek:"じゃあ、いってきます。",eo:"그럼, 다녀오겠습니다."},
+    {w:"いってらっしゃい",r:"いってらっしゃい",k:"다녀오세요",p:"인사",e:"気をつけて、いってらっしゃい。",ek:"きをつけて、いってらっしゃい。",eo:"조심해서 다녀오세요."},
+    {w:"ただいま",r:"ただいま",k:"다녀왔습니다",p:"인사",e:"ただいま。今日は疲れました。",ek:"ただいま。きょうはつかれました。",eo:"다녀왔습니다. 오늘은 피곤하네요."},
+    {w:"おかえりなさい",r:"おかえりなさい",k:"어서 와요 (귀가)",p:"인사",e:"おかえりなさい。ご飯できてるよ。",ek:"おかえりなさい。ごはんできてるよ。",eo:"어서 와. 밥 다 됐어."},
+    {w:"もしもし",r:"もしもし",k:"여보세요",p:"표현",e:"もしもし、田中ですが。",ek:"もしもし、たなかですが。",eo:"여보세요, 다나카인데요."},
+    {w:"おめでとうございます",r:"おめでとうございます",k:"축하합니다",p:"인사",e:"ご結婚おめでとうございます。",ek:"ごけっこんおめでとうございます。",eo:"결혼 축하합니다."},
+    {w:"どうぞ",r:"どうぞ",k:"자, 여기요 / 그러세요",p:"부사",e:"どうぞ、お先にお入りください。",ek:"どうぞ、おさきにおはいりください。",eo:"먼저 들어가세요."},
+    {w:"どうも",r:"どうも",k:"고마워요 / 안녕하세요 (가벼운)",p:"부사",e:"あ、どうも。助かりました。",ek:"あ、どうも。たすかりました。",eo:"아, 고마워요. 덕분에 살았어요."},
+    {w:"お邪魔します",r:"おじゃまします",k:"실례하겠습니다 (방문)",p:"표현",e:"お邪魔します。失礼いたします。",ek:"おじゃまします。しつれいいたします。",eo:"실례하겠습니다. (남의 집에 들어가며)"},
+    {w:"いらっしゃいませ",r:"いらっしゃいませ",k:"어서 오세요 (가게)",p:"인사",e:"いらっしゃいませ。何名様ですか。",ek:"いらっしゃいませ。なんめいさまですか。",eo:"어서 오세요. 몇 분이세요?"},
+    {w:"かしこまりました",r:"かしこまりました",k:"알겠습니다 (격식)",p:"표현",e:"かしこまりました。少々お待ちください。",ek:"かしこまりました。しょうしょうおまちください。",eo:"알겠습니다. 잠시만 기다려 주세요."}
+  ]
+},
+{
+  t:"숫자 · 수량 · 세는 말",
+  items:[
+    {cover:true, no:"주제 02", t:"숫자 · 수량 · 세는 말",
+     lead:"숫자 자체보다 세는 말이 어렵다. 물건마다 붙는 단위가 다르다.",
+     peek:["一つ","枚","冊","匹"]},
+    {w:"一",r:"いち",k:"1, 하나",p:"수사",e:"一から始めましょう。",ek:"いちからはじめましょう。",eo:"1부터 시작합시다."},
+    {w:"二",r:"に",k:"2, 둘",p:"수사",e:"二番のホームです。",ek:"にばんのホームです。",eo:"2번 승강장입니다."},
+    {w:"三",r:"さん",k:"3, 셋",p:"수사",e:"三時に会いましょう。",ek:"さんじにあいましょう。",eo:"3시에 만나요."},
+    {w:"四",r:"よん",k:"4, 넷",p:"수사",e:"四人で行きます。",ek:"よにんでいきます。",eo:"네 명이 갑니다."},
+    {w:"五",r:"ご",k:"5, 다섯",p:"수사",e:"五分だけ待ってください。",ek:"ごふんだけまってください。",eo:"5분만 기다려 주세요."},
+    {w:"六",r:"ろく",k:"6, 여섯",p:"수사",e:"六時に起きました。",ek:"ろくじにおきました。",eo:"6시에 일어났습니다."},
+    {w:"七",r:"なな",k:"7, 일곱",p:"수사",e:"七時の電車に乗ります。",ek:"しちじのでんしゃにのります。",eo:"7시 전철을 탑니다."},
+    {w:"八",r:"はち",k:"8, 여덟",p:"수사",e:"八月は休みが多いです。",ek:"はちがつはやすみがおおいです。",eo:"8월은 휴일이 많습니다."},
+    {w:"九",r:"きゅう",k:"9, 아홉",p:"수사",e:"九時から開いています。",ek:"くじからあいています。",eo:"9시부터 열려 있습니다."},
+    {w:"十",r:"じゅう",k:"10, 열",p:"수사",e:"十分ぐらいかかります。",ek:"じゅっぷんぐらいかかります。",eo:"10분 정도 걸립니다."},
+    {w:"百",r:"ひゃく",k:"백",p:"수사",e:"百円玉はありますか。",ek:"ひゃくえんだまはありますか。",eo:"100엔 동전 있어요?"},
+    {w:"千",r:"せん",k:"천",p:"수사",e:"千円札しかありません。",ek:"せんえんさつしかありません。",eo:"천 엔짜리밖에 없어요."},
+    {w:"万",r:"まん",k:"만",p:"수사",e:"一万円でお願いします。",ek:"いちまんえんでおねがいします。",eo:"만 엔으로 부탁합니다."},
+    {w:"零",r:"れい",k:"0, 영",p:"수사",e:"気温は零度です。",ek:"きおんはれいどです。",eo:"기온은 0도입니다."},
+    {w:"一つ",r:"ひとつ",k:"하나, 한 개",p:"수량",e:"すみません、これを一つください。",ek:"すみません、これをひとつください。",eo:"저기요, 이거 하나 주세요."},
+    {w:"二つ",r:"ふたつ",k:"둘, 두 개",p:"수량",e:"サンドイッチを二つ買いました。",ek:"サンドイッチをふたつかいました。",eo:"샌드위치를 두 개 샀습니다."},
+    {w:"三つ",r:"みっつ",k:"셋, 세 개",p:"수량",e:"りんごを三つください。",ek:"りんごをみっつください。",eo:"사과 세 개 주세요."},
+    {w:"四つ",r:"よっつ",k:"넷, 네 개",p:"수량",e:"椅子が四つ足りません。",ek:"いすがよっつたりません。",eo:"의자가 네 개 모자랍니다."},
+    {w:"五つ",r:"いつつ",k:"다섯, 다섯 개",p:"수량",e:"箱は五つあります。",ek:"はこはいつつあります。",eo:"상자는 다섯 개 있습니다."},
+    {w:"一人",r:"ひとり",k:"한 명, 혼자",p:"수량",e:"今日は一人で映画を見に行きます。",ek:"きょうはひとりでえいがをみにいきます。",eo:"오늘은 혼자 영화 보러 갑니다."},
+    {w:"二人",r:"ふたり",k:"두 명",p:"수량",e:"二人分の席を取りました。",ek:"ふたりぶんのせきをとりました。",eo:"두 명 자리를 잡아뒀어요."},
+    {w:"何人",r:"なんにん",k:"몇 명",p:"의문",e:"全部で何人来ますか。",ek:"ぜんぶでなんにんきますか。",eo:"전부 몇 명 와요?"},
+    {w:"いくつ",r:"いくつ",k:"몇 개, 몇 살",p:"의문",e:"荷物はいくつありますか。",ek:"にもつはいくつありますか。",eo:"짐은 몇 개 있습니까?"},
+    {w:"いくら",r:"いくら",k:"얼마",p:"의문",e:"全部でいくらになりますか。",ek:"ぜんぶでいくらになりますか。",eo:"전부 해서 얼마예요?"},
+    {w:"半分",r:"はんぶん",k:"절반, 반",p:"명사",e:"ケーキを半分ずつ分けましょう。",ek:"ケーキをはんぶんずつわけましょう。",eo:"케이크를 반씩 나눠요."},
+    {w:"円",r:"えん",k:"엔 (일본 화폐)",p:"명사",e:"この本は千五百円でした。",ek:"このほんはせんごひゃくえんでした。",eo:"이 책은 1500엔이었습니다."},
+    {w:"番号",r:"ばんごう",k:"번호",p:"명사",e:"電話番号を教えてください。",ek:"でんわばんごうをおしえてください。",eo:"전화번호를 알려주세요."},
+    {w:"番",r:"ばん",k:"~번",p:"접미",e:"三番の窓口へどうぞ。",ek:"さんばんのまどぐちへどうぞ。",eo:"3번 창구로 가세요."},
+    {w:"回",r:"かい",k:"~회, ~번",p:"접미",e:"週に二回通っています。",ek:"しゅうににかいかよっています。",eo:"주 2회 다니고 있어요."},
+    {w:"階",r:"かい",k:"~층",p:"접미",e:"事務所は三階です。",ek:"じむしょはさんがいです。",eo:"사무실은 3층입니다."},
+    {w:"枚",r:"まい",k:"~장 (종이·얇은 것)",p:"접미",e:"コピーを五枚お願いします。",ek:"コピーをごまいおねがいします。",eo:"복사 다섯 장 부탁합니다."},
+    {w:"〜本",r:"ほん",k:"~자루 (가늘고 긴 것)",p:"접미",e:"ペンを二本貸してください。",ek:"ペンをにほんかしてください。",eo:"펜 두 자루 빌려주세요."},
+    {w:"冊",r:"さつ",k:"~권 (책)",p:"접미",e:"雑誌を三冊買いました。",ek:"ざっしをさんさつかいました。",eo:"잡지를 세 권 샀습니다."},
+    {w:"台",r:"だい",k:"~대 (기계·차)",p:"접미",e:"車が二台停まっています。",ek:"くるまがにだいとまっています。",eo:"차가 두 대 서 있습니다."},
+    {w:"匹",r:"ひき",k:"~마리 (작은 동물)",p:"접미",e:"猫を一匹飼っています。",ek:"ねこをいっぴきかっています。",eo:"고양이를 한 마리 키웁니다."},
+    {w:"杯",r:"はい",k:"~잔",p:"접미",e:"ビールをもう一杯ください。",ek:"ビールをもういっぱいください。",eo:"맥주 한 잔 더 주세요."},
+    {w:"個",r:"こ",k:"~개",p:"접미",e:"卵を六個ください。",ek:"たまごをろっこください。",eo:"달걀 여섯 개 주세요."},
+    {w:"歳",r:"さい",k:"~세, ~살",p:"접미",e:"娘は今年五歳になります。",ek:"むすめはことしごさいになります。",eo:"딸은 올해 다섯 살이 됩니다."},
+    {w:"番目",r:"ばんめ",k:"~번째",p:"접미",e:"二番目の角を右です。",ek:"にばんめのかどをみぎです。",eo:"두 번째 모퉁이에서 오른쪽이에요."},
+    {w:"全部",r:"ぜんぶ",k:"전부, 모두",p:"명사",e:"全部でいくつありますか。",ek:"ぜんぶでいくつありますか。",eo:"전부 몇 개 있어요?"},
+    {w:"たくさん",r:"たくさん",k:"많이",p:"부사",e:"写真をたくさん撮りました。",ek:"しゃしんをたくさんとりました。",eo:"사진을 많이 찍었어요."},
+    {w:"少し",r:"すこし",k:"조금",p:"부사",e:"塩を少し入れてください。",ek:"しおをすこしいれてください。",eo:"소금을 조금 넣어주세요."},
+    {w:"大勢",r:"おおぜい",k:"여럿, 많은 사람",p:"명사",e:"駅前に人が大勢いました。",ek:"えきまえにひとがおおぜいいました。",eo:"역 앞에 사람이 많았어요."},
+    {w:"少ない",r:"すくない",k:"적다",p:"い형용사",e:"今日はお客さんが少ないです。",ek:"きょうはおきゃくさんがすくないです。",eo:"오늘은 손님이 적네요."},
+    {w:"多い",r:"おおい",k:"많다",p:"い형용사",e:"この時間は人が多いです。",ek:"このじかんはひとがおおいです。",eo:"이 시간엔 사람이 많아요."}
+  ]
+},
+{
+  t:"시간 · 날짜 · 요일",
+  items:[
+    {cover:true, no:"주제 03", t:"시간 · 날짜 · 요일",
+     lead:"약속을 잡으려면 이 묶음이 먼저다. 요일과 어제·오늘·내일.",
+     peek:["今日","週末","月曜日","来週"]},
+    {w:"今",r:"いま",k:"지금",p:"명사",e:"今、電車の中です。",ek:"いま、でんしゃのなかです。",eo:"지금 전철 안이에요."},
+    {w:"今日",r:"きょう",k:"오늘",p:"명사",e:"今日は仕事が早く終わりました。",ek:"きょうはしごとがはやくおわりました。",eo:"오늘은 일이 일찍 끝났습니다."},
+    {w:"明日",r:"あした",k:"내일",p:"명사",e:"明日の午前中は空いていますか。",ek:"あしたのごぜんちゅうはあいていますか。",eo:"내일 오전에는 시간 되세요?"},
+    {w:"昨日",r:"きのう",k:"어제",p:"명사",e:"昨日はよく眠れませんでした。",ek:"きのうはよくねむれませんでした。",eo:"어제는 잠을 잘 못 잤어요."},
+    {w:"あさって",r:"あさって",k:"모레",p:"명사",e:"あさってまでに返事をください。",ek:"あさってまでにへんじをください。",eo:"모레까지 답 주세요."},
+    {w:"おととい",r:"おととい",k:"그저께",p:"명사",e:"おととい病院に行きました。",ek:"おとといびょういんにいきました。",eo:"그저께 병원에 갔어요."},
+    {w:"朝",r:"あさ",k:"아침",p:"명사",e:"毎朝七時に起きます。",ek:"まいあさしちじにおきます。",eo:"매일 아침 7시에 일어납니다."},
+    {w:"昼",r:"ひる",k:"낮, 점심",p:"명사",e:"昼ご飯は何にしますか。",ek:"ひるごはんはなににしますか。",eo:"점심 뭐 드실래요?"},
+    {w:"夕方",r:"ゆうがた",k:"저녁 무렵",p:"명사",e:"夕方には戻ります。",ek:"ゆうがたにはもどります。",eo:"저녁쯤에는 돌아옵니다."},
+    {w:"夜",r:"よる",k:"밤",p:"명사",e:"夜は静かでよく眠れます。",ek:"よるはしずかでよくねむれます。",eo:"밤에는 조용해서 잘 잘 수 있어요."},
+    {w:"午前",r:"ごぜん",k:"오전",p:"명사",e:"会議は午前十時からです。",ek:"かいぎはごぜんじゅうじからです。",eo:"회의는 오전 10시부터입니다."},
+    {w:"午後",r:"ごご",k:"오후",p:"명사",e:"午後は外出しています。",ek:"ごごはがいしゅつしています。",eo:"오후에는 외출해 있습니다."},
+    {w:"時間",r:"じかん",k:"시간",p:"명사",e:"すみません、少し時間ありますか。",ek:"すみません、すこしじかんありますか。",eo:"저기, 잠깐 시간 있으세요?"},
+    {w:"時",r:"じ",k:"~시",p:"접미",e:"何時に出ましょうか。",ek:"なんじにでましょうか。",eo:"몇 시에 나갈까요?"},
+    {w:"分",r:"ふん",k:"~분",p:"접미",e:"あと五分で着きます。",ek:"あとごふんでつきます。",eo:"5분 뒤에 도착해요."},
+    {w:"秒",r:"びょう",k:"초",p:"명사",e:"あと十秒待ってください。",ek:"あとじゅうびょうまってください。",eo:"10초만 더 기다려 주세요."},
+    {w:"半",r:"はん",k:"반, 30분",p:"접미",e:"六時半に待ち合わせましょう。",ek:"ろくじはんにまちあわせましょう。",eo:"6시 반에 만나요."},
+    {w:"週末",r:"しゅうまつ",k:"주말",p:"명사",e:"週末は何をする予定ですか。",ek:"しゅうまつはなにをするよていですか。",eo:"주말에 뭐 할 예정이세요?"},
+    {w:"毎日",r:"まいにち",k:"매일",p:"명사",e:"毎日三十分ぐらい歩いています。",ek:"まいにちさんじゅっぷんぐらいあるいています。",eo:"매일 30분 정도 걷고 있어요."},
+    {w:"毎朝",r:"まいあさ",k:"매일 아침",p:"명사",e:"毎朝コーヒーを飲みます。",ek:"まいあさコーヒーをのみます。",eo:"매일 아침 커피를 마십니다."},
+    {w:"毎週",r:"まいしゅう",k:"매주",p:"명사",e:"毎週火曜日に休みます。",ek:"まいしゅうかようびにやすみます。",eo:"매주 화요일에 쉽니다."},
+    {w:"毎年",r:"まいとし",k:"매년",p:"명사",e:"毎年ここに来ています。",ek:"まいとしここにきています。",eo:"매년 여기에 옵니다."},
+    {w:"今週",r:"こんしゅう",k:"이번 주",p:"명사",e:"今週はずっと忙しいです。",ek:"こんしゅうはずっといそがしいです。",eo:"이번 주는 계속 바빠요."},
+    {w:"来週",r:"らいしゅう",k:"다음 주",p:"명사",e:"来週の月曜日にまた来ます。",ek:"らいしゅうのげつようびにまたきます。",eo:"다음 주 월요일에 다시 오겠습니다."},
+    {w:"先週",r:"せんしゅう",k:"지난주",p:"명사",e:"先週から風邪をひいています。",ek:"せんしゅうからかぜをひいています。",eo:"지난주부터 감기에 걸려 있어요."},
+    {w:"今月",r:"こんげつ",k:"이번 달",p:"명사",e:"今月は出張が多いです。",ek:"こんげつはしゅっちょうがおおいです。",eo:"이번 달은 출장이 많아요."},
+    {w:"来月",r:"らいげつ",k:"다음 달",p:"명사",e:"来月引っ越します。",ek:"らいげつひっこします。",eo:"다음 달에 이사합니다."},
+    {w:"先月",r:"せんげつ",k:"지난달",p:"명사",e:"先月から始めました。",ek:"せんげつからはじめました。",eo:"지난달부터 시작했어요."},
+    {w:"今年",r:"ことし",k:"올해",p:"명사",e:"今年の夏は暑いですね。",ek:"ことしのなつはあついですね。",eo:"올여름은 덥네요."},
+    {w:"来年",r:"らいねん",k:"내년",p:"명사",e:"来年、日本に行きます。",ek:"らいねん、にほんにいきます。",eo:"내년에 일본에 갑니다."},
+    {w:"去年",r:"きょねん",k:"작년",p:"명사",e:"去年からここで働いています。",ek:"きょねんからここではたらいています。",eo:"작년부터 여기서 일하고 있어요."},
+    {w:"月曜日",r:"げつようび",k:"월요일",p:"명사",e:"月曜日はいつも会議です。",ek:"げつようびはいつもかいぎです。",eo:"월요일은 늘 회의예요."},
+    {w:"火曜日",r:"かようび",k:"화요일",p:"명사",e:"火曜日なら空いています。",ek:"かようびならあいています。",eo:"화요일이면 시간 있어요."},
+    {w:"水曜日",r:"すいようび",k:"수요일",p:"명사",e:"水曜日は早く帰れます。",ek:"すいようびははやくかえれます。",eo:"수요일은 일찍 갈 수 있어요."},
+    {w:"木曜日",r:"もくようび",k:"목요일",p:"명사",e:"木曜日に届く予定です。",ek:"もくようびにとどくよていです。",eo:"목요일에 도착할 예정입니다."},
+    {w:"金曜日",r:"きんようび",k:"금요일",p:"명사",e:"金曜日の夜は混みます。",ek:"きんようびのよるはこみます。",eo:"금요일 밤은 붐빕니다."},
+    {w:"土曜日",r:"どようび",k:"토요일",p:"명사",e:"土曜日も営業していますか。",ek:"どようびもえいぎょうしていますか。",eo:"토요일도 영업하세요?"},
+    {w:"日曜日",r:"にちようび",k:"일요일",p:"명사",e:"日曜日はゆっくり休みます。",ek:"にちようびはゆっくりやすみます。",eo:"일요일은 푹 쉽니다."},
+    {w:"何曜日",r:"なんようび",k:"무슨 요일",p:"의문",e:"今日は何曜日でしたか。",ek:"きょうはなんようびでしたか。",eo:"오늘 무슨 요일이었죠?"},
+    {w:"誕生日",r:"たんじょうび",k:"생일",p:"명사",e:"誕生日はいつですか。",ek:"たんじょうびはいつですか。",eo:"생일이 언제예요?"},
+    {w:"月",r:"つき",k:"달 (기간·달빛)",p:"명사",e:"月に一度集まります。",ek:"つきにいちどあつまります。",eo:"한 달에 한 번 모입니다."},
+    {w:"日",r:"ひ",k:"날, 해",p:"명사",e:"日が暮れる前に帰りましょう。",ek:"ひがくれるまえにかえりましょう。",eo:"해 지기 전에 돌아갑시다."},
+    {w:"年",r:"とし",k:"해, 나이",p:"명사",e:"年が明けたら連絡します。",ek:"としがあけたられんらくします。",eo:"해가 바뀌면 연락드릴게요."},
+    {w:"一月",r:"いちがつ",k:"1월",p:"명사",e:"一月は休みが長いです。",ek:"いちがつはやすみがながいです。",eo:"1월은 휴가가 깁니다."},
+    {w:"何月",r:"なんがつ",k:"몇 월",p:"의문",e:"入社は何月ですか。",ek:"にゅうしゃはなんがつですか。",eo:"입사가 몇 월이에요?"},
+    {w:"何日",r:"なんにち",k:"며칠",p:"의문",e:"今日は何日ですか。",ek:"きょうはなんにちですか。",eo:"오늘 며칠이에요?"},
+    {w:"一日",r:"ついたち",k:"1일 (날짜)",p:"명사",e:"契約は四月一日からです。",ek:"けいやくはしがつついたちからです。",eo:"계약은 4월 1일부터입니다."},
+    {w:"休み",r:"やすみ",k:"휴일, 휴식",p:"명사",e:"明日は休みを取ります。",ek:"あしたはやすみをとります。",eo:"내일은 휴가를 냅니다."},
+    {w:"最近",r:"さいきん",k:"요즘, 최근",p:"명사",e:"最近よく眠れません。",ek:"さいきんよくねむれません。",eo:"요즘 잠을 잘 못 자요."},
+    {w:"今度",r:"こんど",k:"이번, 다음번",p:"명사",e:"今度、一緒に飲みましょう。",ek:"こんど、いっしょにのみましょう。",eo:"다음에 같이 한잔해요."},
+    {w:"この間",r:"このあいだ",k:"요전에, 지난번",p:"명사",e:"この間の話、覚えていますか。",ek:"このあいだのはなし、おぼえていますか。",eo:"지난번 얘기 기억하세요?"},
+    {w:"後で",r:"あとで",k:"나중에",p:"부사",e:"後で連絡しますね。",ek:"あとでれんらくしますね。",eo:"나중에 연락드릴게요."},
+    {w:"さっき",r:"さっき",k:"아까, 조금 전",p:"부사",e:"さっき電話がありました。",ek:"さっきでんわがありました。",eo:"아까 전화 왔었어요."},
+    {w:"次",r:"つぎ",k:"다음",p:"명사",e:"次の駅で降ります。",ek:"つぎのえきでおります。",eo:"다음 역에서 내려요."},
+    {w:"今晩",r:"こんばん",k:"오늘 밤",p:"명사",e:"今晩、時間ありますか。",ek:"こんばん、じかんありますか。",eo:"오늘 밤에 시간 있어요?"}
+  ]
+},
+{
+  t:"사람 · 가족 · 관계",
+  items:[
+    {cover:true, no:"주제 04", t:"사람 · 가족 · 관계",
+     lead:"내 가족과 남의 가족을 다르게 부른다. 母와 お母さん의 차이.",
+     peek:["家族","母","お母さん","友達"]},
+    {w:"人",r:"ひと",k:"사람",p:"명사",e:"あの人は隣の部署の方です。",ek:"あのひとはとなりのぶしょのかたです。",eo:"저 사람은 옆 부서 분이에요."},
+    {w:"私",r:"わたし",k:"나, 저",p:"대명사",e:"私が案内します。",ek:"わたしがあんないします。",eo:"제가 안내해 드릴게요."},
+    {w:"僕",r:"ぼく",k:"나 (남성)",p:"대명사",e:"僕もそう思います。",ek:"ぼくもそうおもいます。",eo:"저도 그렇게 생각해요."},
+    {w:"あなた",r:"あなた",k:"당신",p:"대명사",e:"あなたはどう思いますか。",ek:"あなたはどうおもいますか。",eo:"당신은 어떻게 생각하세요?"},
+    {w:"彼",r:"かれ",k:"그, 남자친구",p:"대명사",e:"彼はまだ来ていません。",ek:"かれはまだきていません。",eo:"그는 아직 안 왔어요."},
+    {w:"彼女",r:"かのじょ",k:"그녀, 여자친구",p:"대명사",e:"彼女は英語が上手です。",ek:"かのじょはえいごがじょうずです。",eo:"그녀는 영어를 잘해요."},
+    {w:"皆さん",r:"みなさん",k:"여러분",p:"명사",e:"皆さん、こちらへどうぞ。",ek:"みなさん、こちらへどうぞ。",eo:"여러분, 이쪽으로 오세요."},
+    {w:"友達",r:"ともだち",k:"친구",p:"명사",e:"友達と晩ご飯を食べに行きます。",ek:"ともだちとばんごはんをたべにいきます。",eo:"친구랑 저녁 먹으러 갑니다."},
+    {w:"家族",r:"かぞく",k:"가족",p:"명사",e:"家族はみんな元気です。",ek:"かぞくはみんなげんきです。",eo:"가족은 모두 잘 지냅니다."},
+    {w:"両親",r:"りょうしん",k:"부모님",p:"명사",e:"両親は田舎に住んでいます。",ek:"りょうしんはいなかにすんでいます。",eo:"부모님은 시골에 사십니다."},
+    {w:"母",r:"はは",k:"어머니 (내 어머니)",p:"명사",e:"母に電話をかけました。",ek:"ははにでんわをかけました。",eo:"어머니께 전화를 걸었습니다."},
+    {w:"父",r:"ちち",k:"아버지 (내 아버지)",p:"명사",e:"父は毎朝散歩に行きます。",ek:"ちちはまいあささんぽにいきます。",eo:"아버지는 매일 아침 산책하러 가십니다."},
+    {w:"お母さん",r:"おかあさん",k:"어머니 (남의·호칭)",p:"명사",e:"お母さんによろしくお伝えください。",ek:"おかあさんによろしくおつたえください。",eo:"어머님께 안부 전해 주세요."},
+    {w:"お父さん",r:"おとうさん",k:"아버지 (남의·호칭)",p:"명사",e:"お父さんはお元気ですか。",ek:"おとうさんはおげんきですか。",eo:"아버님은 잘 지내세요?"},
+    {w:"兄",r:"あに",k:"형, 오빠 (내)",p:"명사",e:"兄は大阪で働いています。",ek:"あにはおおさかではたらいています。",eo:"형은 오사카에서 일해요."},
+    {w:"姉",r:"あね",k:"누나, 언니 (내)",p:"명사",e:"姉は病院で働いています。",ek:"あねはびょういんではたらいています。",eo:"누나는 병원에서 일해요."},
+    {w:"弟",r:"おとうと",k:"남동생",p:"명사",e:"弟はまだ学生です。",ek:"おとうとはまだがくせいです。",eo:"남동생은 아직 학생이에요."},
+    {w:"妹",r:"いもうと",k:"여동생",p:"명사",e:"妹と一緒に住んでいます。",ek:"いもうとといっしょにすんでいます。",eo:"여동생이랑 같이 살아요."},
+    {w:"兄弟",r:"きょうだい",k:"형제",p:"명사",e:"兄弟は何人いますか。",ek:"きょうだいはなんにんいますか。",eo:"형제가 몇 명이에요?"},
+    {w:"祖母",r:"そぼ",k:"할머니 (내)",p:"명사",e:"祖母は今年八十歳です。",ek:"そぼはことしはちじゅっさいです。",eo:"할머니는 올해 여든이십니다."},
+    {w:"祖父",r:"そふ",k:"할아버지 (내)",p:"명사",e:"祖父は毎日新聞を読みます。",ek:"そふはまいにちしんぶんをよみます。",eo:"할아버지는 매일 신문을 읽으십니다."},
+    {w:"主人",r:"しゅじん",k:"남편 (내)",p:"명사",e:"主人はまだ会社です。",ek:"しゅじんはまだかいしゃです。",eo:"남편은 아직 회사에 있어요."},
+    {w:"奥さん",r:"おくさん",k:"부인 (남의)",p:"명사",e:"奥さんもご一緒ですか。",ek:"おくさんもごいっしょですか。",eo:"부인도 같이 오세요?"},
+    {w:"子供",r:"こども",k:"아이, 자녀",p:"명사",e:"子供が二人います。",ek:"こどもがふたりいます。",eo:"아이가 둘 있습니다."},
+    {w:"息子",r:"むすこ",k:"아들",p:"명사",e:"息子は来年小学生です。",ek:"むすこはらいねんしょうがくせいです。",eo:"아들은 내년에 초등학생이에요."},
+    {w:"娘",r:"むすめ",k:"딸",p:"명사",e:"娘はピアノを習っています。",ek:"むすめはピアノをならっています。",eo:"딸은 피아노를 배우고 있어요."},
+    {w:"赤ちゃん",r:"あかちゃん",k:"아기",p:"명사",e:"赤ちゃんが寝ています。",ek:"あかちゃんがねています。",eo:"아기가 자고 있어요."},
+    {w:"先生",r:"せんせい",k:"선생님",p:"명사",e:"先生に質問してもいいですか。",ek:"せんせいにしつもんしてもいいですか。",eo:"선생님께 질문해도 될까요?"},
+    {w:"学生",r:"がくせい",k:"학생",p:"명사",e:"学生の時、ここでアルバイトをしていました。",ek:"がくせいのとき、ここでアルバイトをしていました。",eo:"학생 때 여기서 아르바이트를 했어요."},
+    {w:"名前",r:"なまえ",k:"이름",p:"명사",e:"お名前を教えていただけますか。",ek:"おなまえをおしえていただけますか。",eo:"성함을 알려주시겠어요?"},
+    {w:"男",r:"おとこ",k:"남자",p:"명사",e:"男の人が待っています。",ek:"おとこのひとがまっています。",eo:"남자분이 기다리고 계세요."},
+    {w:"女",r:"おんな",k:"여자",p:"명사",e:"女の人に道を聞きました。",ek:"おんなのひとにみちをききました。",eo:"여자분에게 길을 물었어요."},
+    {w:"大人",r:"おとな",k:"어른",p:"명사",e:"大人二枚お願いします。",ek:"おとなにまいおねがいします。",eo:"어른 두 장 주세요."},
+    {w:"知り合い",r:"しりあい",k:"아는 사람, 지인",p:"명사",e:"彼は昔からの知り合いです。",ek:"かれはむかしからのしりあいです。",eo:"그는 예전부터 알던 사이예요."},
+    {w:"方",r:"かた",k:"분 (사람 높임)",p:"명사",e:"受付の方に聞いてください。",ek:"うけつけのかたにきいてください。",eo:"접수처 분께 물어보세요."},
+    {w:"お客さん",r:"おきゃくさん",k:"손님",p:"명사",e:"お客さんが来ています。",ek:"おきゃくさんがきています。",eo:"손님이 와 계세요."},
+    {w:"外国人",r:"がいこくじん",k:"외국인",p:"명사",e:"この店は外国人にも人気です。",ek:"このみせはがいこくじんにもにんきです。",eo:"이 가게는 외국인에게도 인기예요."},
+    {w:"みんな",r:"みんな",k:"모두, 다들",p:"명사",e:"みんなでご飯を食べました。",ek:"みんなでごはんをたべました。",eo:"다 같이 밥을 먹었어요."},
+    {w:"自分",r:"じぶん",k:"자기, 자신",p:"명사",e:"自分でやってみます。",ek:"じぶんでやってみます。",eo:"제가 직접 해볼게요."},
+    {w:"名刺",r:"めいし",k:"명함",p:"명사",e:"名刺を切らしてしまいました。",ek:"めいしをきらしてしまいました。",eo:"명함이 다 떨어졌네요."},
+    {w:"人気",r:"にんき",k:"인기",p:"명사",e:"この店は若い人に人気があります。",ek:"このみせはわかいひとににんきがあります。",eo:"이 가게는 젊은 사람들에게 인기가 있어요."},
+    {w:"約束",r:"やくそく",k:"약속",p:"명사",e:"今日は約束があります。",ek:"きょうはやくそくがあります。",eo:"오늘은 약속이 있어요."},
+    {w:"結婚",r:"けっこん",k:"결혼",p:"명사",e:"来年結婚する予定です。",ek:"らいねんけっこんするよていです。",eo:"내년에 결혼할 예정이에요."},
+    {w:"住所",r:"じゅうしょ",k:"주소",p:"명사",e:"住所をここに書いてください。",ek:"じゅうしょをここにかいてください。",eo:"주소를 여기에 적어주세요."},
+    {w:"年齢",r:"ねんれい",k:"나이, 연령",p:"명사",e:"年齢は書かなくて大丈夫です。",ek:"ねんれいはかかなくてだいじょうぶです。",eo:"나이는 안 적으셔도 됩니다."}
+  ]
+},
+{
+  t:"몸 · 건강",
+  items:[
+    {cover:true, no:"주제 05", t:"몸 · 건강",
+     lead:"아플 때 쓰는 말. 어디가 어떻게 아픈지 말할 수 있게.",
+     peek:["頭","熱","風邪","痛い"]},
+    {w:"体",r:"からだ",k:"몸",p:"명사",e:"最近、体の調子がいいです。",ek:"さいきん、からだのちょうしがいいです。",eo:"요즘 몸 상태가 좋아요."},
+    {w:"頭",r:"あたま",k:"머리",p:"명사",e:"朝から頭が痛いです。",ek:"あさからあたまがいたいです。",eo:"아침부터 머리가 아파요."},
+    {w:"顔",r:"かお",k:"얼굴",p:"명사",e:"顔色が悪いですよ。",ek:"かおいろがわるいですよ。",eo:"안색이 안 좋아요."},
+    {w:"目",r:"め",k:"눈",p:"명사",e:"目が疲れました。",ek:"めがつかれました。",eo:"눈이 피로해요."},
+    {w:"耳",r:"みみ",k:"귀",p:"명사",e:"耳が痛くなりました。",ek:"みみがいたくなりました。",eo:"귀가 아파졌어요."},
+    {w:"鼻",r:"はな",k:"코",p:"명사",e:"花粉で鼻がむずむずします。",ek:"かふんではながむずむずします。",eo:"꽃가루 때문에 코가 근질거려요."},
+    {w:"口",r:"くち",k:"입",p:"명사",e:"口を大きく開けてください。",ek:"くちをおおきくあけてください。",eo:"입을 크게 벌려주세요."},
+    {w:"歯",r:"は",k:"이, 치아",p:"명사",e:"歯が痛くて歯医者に行きました。",ek:"はがいたくてはいしゃにいきました。",eo:"이가 아파서 치과에 갔어요."},
+    {w:"手",r:"て",k:"손",p:"명사",e:"食べる前に手を洗ってください。",ek:"たべるまえにてをあらってください。",eo:"먹기 전에 손을 씻으세요."},
+    {w:"指",r:"ゆび",k:"손가락",p:"명사",e:"指を切ってしまいました。",ek:"ゆびをきってしまいました。",eo:"손가락을 베었어요."},
+    {w:"足",r:"あし",k:"다리, 발",p:"명사",e:"歩きすぎて足が痛いです。",ek:"あるきすぎてあしがいたいです。",eo:"많이 걸어서 다리가 아파요."},
+    {w:"背",r:"せ",k:"키, 등",p:"명사",e:"弟は背が高いです。",ek:"おとうとはせがたかいです。",eo:"남동생은 키가 커요."},
+    {w:"お腹",r:"おなか",k:"배",p:"명사",e:"お腹がすきました。",ek:"おなかがすきました。",eo:"배가 고파요."},
+    {w:"喉",r:"のど",k:"목(구멍)",p:"명사",e:"喉が渇きました。",ek:"のどがかわきました。",eo:"목이 마르네요."},
+    {w:"病気",r:"びょうき",k:"병",p:"명사",e:"病気で三日休みました。",ek:"びょうきでみっかやすみました。",eo:"아파서 사흘 쉬었어요."},
+    {w:"風邪",r:"かぜ",k:"감기",p:"명사",e:"風邪をひいたみたいです。",ek:"かぜをひいたみたいです。",eo:"감기에 걸린 것 같아요."},
+    {w:"熱",r:"ねつ",k:"열",p:"명사",e:"少し熱があります。",ek:"すこしねつがあります。",eo:"열이 좀 있어요."},
+    {w:"薬",r:"くすり",k:"약",p:"명사",e:"この薬は食後に飲みます。",ek:"このくすりはしょくごにのみます。",eo:"이 약은 식후에 먹습니다."},
+    {w:"怪我",r:"けが",k:"부상, 상처",p:"명사",e:"転んで怪我をしました。",ek:"ころんでけがをしました。",eo:"넘어져서 다쳤어요."},
+    {w:"医者",r:"いしゃ",k:"의사",p:"명사",e:"一度医者に見てもらってください。",ek:"いちどいしゃにみてもらってください。",eo:"한번 의사한테 진찰받아 보세요."},
+    {w:"元気",r:"げんき",k:"건강함, 잘 지냄",p:"な형용사",e:"お久しぶりです。お元気でしたか。",ek:"おひさしぶりです。おげんきでしたか。",eo:"오랜만이에요. 잘 지내셨어요?"},
+    {w:"痛い",r:"いたい",k:"아프다",p:"い형용사",e:"ここが少し痛いです。",ek:"ここがすこしいたいです。",eo:"여기가 좀 아파요."},
+    {w:"疲れる",r:"つかれる",k:"피곤하다, 지치다",p:"동사",e:"今日はとても疲れました。",ek:"きょうはとてもつかれました。",eo:"오늘은 무척 피곤하네요."},
+    {w:"眠い",r:"ねむい",k:"졸리다",p:"い형용사",e:"昨日寝ていないので眠いです。",ek:"きのうねていないのでねむいです。",eo:"어제 못 자서 졸려요."},
+    {w:"歯医者",r:"はいしゃ",k:"치과, 치과의사",p:"명사",e:"来週、歯医者の予約があります。",ek:"らいしゅう、はいしゃのよやくがあります。",eo:"다음 주에 치과 예약이 있어요."},
+    {w:"調子",r:"ちょうし",k:"컨디션, 상태",p:"명사",e:"パソコンの調子が悪いです。",ek:"パソコンのちょうしがわるいです。",eo:"컴퓨터 상태가 안 좋아요."},
+    {w:"入院",r:"にゅういん",k:"입원",p:"명사",e:"父が入院しました。",ek:"ちちがにゅういんしました。",eo:"아버지가 입원하셨어요."},
+    {w:"運動",r:"うんどう",k:"운동",p:"명사",e:"週末は運動しています。",ek:"しゅうまつはうんどうしています。",eo:"주말에는 운동합니다."},
+    {w:"睡眠",r:"すいみん",k:"수면",p:"명사",e:"睡眠が足りていません。",ek:"すいみんがたりていません。",eo:"수면이 부족해요."},
+    {w:"命",r:"いのち",k:"목숨, 생명",p:"명사",e:"命に別状はありません。",ek:"いのちにべつじょうはありません。",eo:"생명에는 지장이 없습니다."}
+  ]
+},
+{
+  t:"집 · 방 · 생활용품",
+  items:[
+    {cover:true, no:"주제 06", t:"집 · 방 · 생활용품",
+     lead:"하루를 보내는 공간과 손에 잡히는 물건들.",
+     peek:["部屋","鍵","冷蔵庫","洗濯"]},
+    {w:"家",r:"いえ",k:"집",p:"명사",e:"もう家に着きました。",ek:"もういえにつきました。",eo:"벌써 집에 도착했어요."},
+    {w:"部屋",r:"へや",k:"방",p:"명사",e:"部屋の鍵をなくしました。",ek:"へやのかぎをなくしました。",eo:"방 열쇠를 잃어버렸어요."},
+    {w:"台所",r:"だいどころ",k:"부엌",p:"명사",e:"台所を掃除しました。",ek:"だいどころをそうじしました。",eo:"부엌을 청소했어요."},
+    {w:"トイレ",r:"トイレ",k:"화장실",p:"명사",e:"トイレをお借りできますか。",ek:"トイレをおかりできますか。",eo:"화장실 좀 써도 될까요?"},
+    {w:"お風呂",r:"おふろ",k:"목욕, 욕조",p:"명사",e:"先にお風呂に入ります。",ek:"さきにおふろにはいります。",eo:"먼저 목욕할게요."},
+    {w:"玄関",r:"げんかん",k:"현관",p:"명사",e:"荷物は玄関に置いてください。",ek:"にもつはげんかんにおいてください。",eo:"짐은 현관에 놔주세요."},
+    {w:"庭",r:"にわ",k:"마당, 정원",p:"명사",e:"庭に花を植えました。",ek:"にわにはなをうえました。",eo:"마당에 꽃을 심었어요."},
+    {w:"窓",r:"まど",k:"창문",p:"명사",e:"窓を開けてもいいですか。",ek:"まどをあけてもいいですか。",eo:"창문 열어도 될까요?"},
+    {w:"ドア",r:"ドア",k:"문",p:"명사",e:"ドアが閉まりません。",ek:"ドアがしまりません。",eo:"문이 안 닫혀요."},
+    {w:"鍵",r:"かぎ",k:"열쇠",p:"명사",e:"出かける前に鍵をかけてください。",ek:"でかけるまえにかぎをかけてください。",eo:"나가기 전에 문 잠가주세요."},
+    {w:"階段",r:"かいだん",k:"계단",p:"명사",e:"階段は右にあります。",ek:"かいだんはみぎにあります。",eo:"계단은 오른쪽에 있어요."},
+    {w:"壁",r:"かべ",k:"벽",p:"명사",e:"壁に時計を掛けました。",ek:"かべにとけいをかけました。",eo:"벽에 시계를 걸었어요."},
+    {w:"机",r:"つくえ",k:"책상",p:"명사",e:"机の上を片付けてください。",ek:"つくえのうえをかたづけてください。",eo:"책상 위를 정리해 주세요."},
+    {w:"椅子",r:"いす",k:"의자",p:"명사",e:"椅子をもう一つ持ってきます。",ek:"いすをもうひとつもってきます。",eo:"의자 하나 더 가져올게요."},
+    {w:"ベッド",r:"ベッド",k:"침대",p:"명사",e:"ベッドが少し硬いです。",ek:"ベッドがすこしかたいです。",eo:"침대가 좀 딱딱해요."},
+    {w:"棚",r:"たな",k:"선반",p:"명사",e:"棚の上に置いてあります。",ek:"たなのうえにおいてあります。",eo:"선반 위에 놓여 있어요."},
+    {w:"箱",r:"はこ",k:"상자",p:"명사",e:"箱に入れて送ります。",ek:"はこにいれておくります。",eo:"상자에 넣어서 보낼게요."},
+    {w:"電気",r:"でんき",k:"전기, 불",p:"명사",e:"電気を消してください。",ek:"でんきをけしてください。",eo:"불 좀 꺼주세요."},
+    {w:"時計",r:"とけい",k:"시계",p:"명사",e:"この時計は少し遅れています。",ek:"このとけいはすこしおくれています。",eo:"이 시계는 조금 느려요."},
+    {w:"冷蔵庫",r:"れいぞうこ",k:"냉장고",p:"명사",e:"冷蔵庫に入れておきました。",ek:"れいぞうこにいれておきました。",eo:"냉장고에 넣어뒀어요."},
+    {w:"洗濯機",r:"せんたくき",k:"세탁기",p:"명사",e:"洗濯機が壊れました。",ek:"せんたくきがこわれました。",eo:"세탁기가 고장 났어요."},
+    {w:"掃除機",r:"そうじき",k:"청소기",p:"명사",e:"掃除機をかけますね。",ek:"そうじきをかけますね。",eo:"청소기 돌릴게요."},
+    {w:"エアコン",r:"エアコン",k:"에어컨",p:"명사",e:"エアコンをつけてもいいですか。",ek:"エアコンをつけてもいいですか。",eo:"에어컨 켜도 될까요?"},
+    {w:"テレビ",r:"テレビ",k:"텔레비전",p:"명사",e:"テレビの音を小さくしてください。",ek:"テレビのおとをちいさくしてください。",eo:"TV 소리 좀 줄여주세요."},
+    {w:"電話",r:"でんわ",k:"전화",p:"명사",e:"後で電話します。",ek:"あとででんわします。",eo:"나중에 전화할게요."},
+    {w:"傘",r:"かさ",k:"우산",p:"명사",e:"傘を電車に忘れました。",ek:"かさをでんしゃにわすれました。",eo:"우산을 전철에 두고 내렸어요."},
+    {w:"財布",r:"さいふ",k:"지갑",p:"명사",e:"財布を家に忘れてしまいました。",ek:"さいふをいえにわすれてしまいました。",eo:"지갑을 집에 두고 왔어요."},
+    {w:"荷物",r:"にもつ",k:"짐",p:"명사",e:"荷物はここに置いてもいいですか。",ek:"にもつはここにおいてもいいですか。",eo:"짐은 여기 둬도 되나요?"},
+    {w:"鞄",r:"かばん",k:"가방",p:"명사",e:"鞄の中に入っています。",ek:"かばんのなかにはいっています。",eo:"가방 안에 들어 있어요."},
+    {w:"本",r:"ほん",k:"책",p:"명사",e:"この本、借りてもいいですか。",ek:"このほん、かりてもいいですか。",eo:"이 책 빌려도 될까요?"},
+    {w:"新聞",r:"しんぶん",k:"신문",p:"명사",e:"朝、新聞を読みます。",ek:"あさ、しんぶんをよみます。",eo:"아침에 신문을 읽습니다."},
+    {w:"雑誌",r:"ざっし",k:"잡지",p:"명사",e:"待合室に雑誌があります。",ek:"まちあいしつにざっしがあります。",eo:"대기실에 잡지가 있어요."},
+    {w:"紙",r:"かみ",k:"종이",p:"명사",e:"紙を一枚もらえますか。",ek:"かみをいちまいもらえますか。",eo:"종이 한 장 주실래요?"},
+    {w:"手紙",r:"てがみ",k:"편지",p:"명사",e:"手紙を出しに行きます。",ek:"てがみをだしにいきます。",eo:"편지 부치러 갑니다."},
+    {w:"写真",r:"しゃしん",k:"사진",p:"명사",e:"ここで写真を撮ってもいいですか。",ek:"ここでしゃしんをとってもいいですか。",eo:"여기서 사진 찍어도 되나요?"},
+    {w:"鏡",r:"かがみ",k:"거울",p:"명사",e:"鏡はあちらにあります。",ek:"かがみはあちらにあります。",eo:"거울은 저쪽에 있습니다."},
+    {w:"石鹸",r:"せっけん",k:"비누",p:"명사",e:"石鹸がなくなりました。",ek:"せっけんがなくなりました。",eo:"비누가 다 떨어졌어요."},
+    {w:"タオル",r:"タオル",k:"수건",p:"명사",e:"タオルをもう一枚ください。",ek:"タオルをもういちまいください。",eo:"수건 한 장 더 주세요."},
+    {w:"歯ブラシ",r:"はブラシ",k:"칫솔",p:"명사",e:"歯ブラシを買ってきました。",ek:"はブラシをかってきました。",eo:"칫솔을 사왔어요."},
+    {w:"ゴミ",r:"ゴミ",k:"쓰레기",p:"명사",e:"ゴミは月曜日に出します。",ek:"ゴミはげつようびにだします。",eo:"쓰레기는 월요일에 내놓습니다."},
+    {w:"袋",r:"ふくろ",k:"봉투, 봉지",p:"명사",e:"袋はいりません、大丈夫です。",ek:"ふくろはいりません、だいじょうぶです。",eo:"봉투는 괜찮습니다."},
+    {w:"電池",r:"でんち",k:"건전지",p:"명사",e:"電池が切れました。",ek:"でんちがきれました。",eo:"배터리가 다 됐어요."},
+    {w:"道具",r:"どうぐ",k:"도구",p:"명사",e:"道具は貸してもらえます。",ek:"どうぐはかしてもらえます。",eo:"도구는 빌릴 수 있어요."},
+    {w:"物",r:"もの",k:"물건, 것",p:"명사",e:"要らない物は捨てました。",ek:"いらないものはすてました。",eo:"필요 없는 물건은 버렸어요."},
+    {w:"テーブル",r:"テーブル",k:"테이블, 식탁",p:"명사",e:"テーブルを拭いておきますね。",ek:"テーブルをふいておきますね。",eo:"테이블 닦아둘게요."},
+    {w:"布団",r:"ふとん",k:"이불",p:"명사",e:"布団を干しました。",ek:"ふとんをほしました。",eo:"이불을 널었어요."},
+    {w:"引っ越し",r:"ひっこし",k:"이사",p:"명사",e:"来月引っ越しをします。",ek:"らいげつひっこしをします。",eo:"다음 달에 이사합니다."},
+    {w:"掃除",r:"そうじ",k:"청소",p:"명사",e:"日曜日に部屋の掃除をします。",ek:"にちようびにへやのそうじをします。",eo:"일요일에 방 청소를 합니다."},
+    {w:"洗濯",r:"せんたく",k:"세탁, 빨래",p:"명사",e:"今日は洗濯をしました。",ek:"きょうはせんたくをしました。",eo:"오늘은 빨래를 했어요."},
+    {w:"料理",r:"りょうり",k:"요리",p:"명사",e:"母の料理が一番おいしいです。",ek:"ははのりょうりがいちばんおいしいです。",eo:"어머니 요리가 제일 맛있어요."},
+    {w:"生活",r:"せいかつ",k:"생활",p:"명사",e:"こちらの生活にはもう慣れました。",ek:"こちらのせいかつにはもうなれました。",eo:"이곳 생활에는 이제 익숙해졌어요."},
+    {w:"家賃",r:"やちん",k:"집세, 월세",p:"명사",e:"この辺は家賃が高いですね。",ek:"このへんはやちんがたかいですね。",eo:"이 근처는 월세가 비싸네요."},
+    {w:"アパート",r:"アパート",k:"아파트, 연립주택",p:"명사",e:"駅の近くのアパートに住んでいます。",ek:"えきのちかくのアパートにすんでいます。",eo:"역 근처 아파트에 살아요."},
+    {w:"隣人",r:"りんじん",k:"이웃 사람",p:"명사",e:"隣人にあいさつをしました。",ek:"りんじんにあいさつをしました。",eo:"이웃에게 인사를 했어요."},
+    {w:"住む",r:"すむ",k:"살다, 거주하다",p:"동사",e:"東京に五年住んでいます。",ek:"とうきょうにごねんすんでいます。",eo:"도쿄에 5년째 살고 있어요."}
+  ]
+},
+{
+  t:"옷 · 몸에 걸치는 것",
+  items:[
+    {cover:true, no:"주제 07", t:"옷 · 몸에 걸치는 것",
+     lead:"입다·신다·쓰다가 전부 다른 동사다. 着る·履く·かぶる.",
+     peek:["服","靴","帽子","眼鏡"]},
+    {w:"服",r:"ふく",k:"옷",p:"명사",e:"明日の服はもう決めました。",ek:"あしたのふくはもうきめました。",eo:"내일 입을 옷은 벌써 정했어요."},
+    {w:"洋服",r:"ようふく",k:"양복, 옷",p:"명사",e:"洋服を買いに行きます。",ek:"ようふくをかいにいきます。",eo:"옷 사러 갑니다."},
+    {w:"シャツ",r:"シャツ",k:"셔츠",p:"명사",e:"白いシャツを探しています。",ek:"しろいシャツをさがしています。",eo:"흰 셔츠를 찾고 있어요."},
+    {w:"ズボン",r:"ズボン",k:"바지",p:"명사",e:"このズボンは少し長いです。",ek:"このズボンはすこしながいです。",eo:"이 바지는 좀 길어요."},
+    {w:"スカート",r:"スカート",k:"치마",p:"명사",e:"スカートを試着してもいいですか。",ek:"スカートをしちゃくしてもいいですか。",eo:"치마 입어봐도 될까요?"},
+    {w:"上着",r:"うわぎ",k:"겉옷, 재킷",p:"명사",e:"外は寒いから、上着を持っていってね。",ek:"そとはさむいから、うわぎをもっていってね。",eo:"밖이 추우니까 겉옷 챙겨 가."},
+    {w:"コート",r:"コート",k:"코트",p:"명사",e:"コートはこちらでお預かりします。",ek:"コートはこちらでおあずかりします。",eo:"코트는 이쪽에서 맡아드릴게요."},
+    {w:"セーター",r:"セーター",k:"스웨터",p:"명사",e:"暖かいセーターを着ています。",ek:"あたたかいセーターをきています。",eo:"따뜻한 스웨터를 입고 있어요."},
+    {w:"靴",r:"くつ",k:"신발, 구두",p:"명사",e:"この靴は少し小さいです。",ek:"このくつはすこしちいさいです。",eo:"이 신발은 좀 작아요."},
+    {w:"靴下",r:"くつした",k:"양말",p:"명사",e:"靴下に穴が空きました。",ek:"くつしたにあながあきました。",eo:"양말에 구멍이 났어요."},
+    {w:"帽子",r:"ぼうし",k:"모자",p:"명사",e:"日が強いので帽子をかぶります。",ek:"ひがつよいのでぼうしをかぶります。",eo:"햇볕이 강해서 모자를 씁니다."},
+    {w:"眼鏡",r:"めがね",k:"안경",p:"명사",e:"眼鏡がないと読めません。",ek:"めがねがないとよめません。",eo:"안경 없으면 못 읽어요."},
+    {w:"腕時計",r:"うでどけい",k:"손목시계",p:"명사",e:"父から腕時計をもらいました。",ek:"ちちからうでどけいをもらいました。",eo:"아버지께 손목시계를 받았어요."},
+    {w:"ネクタイ",r:"ネクタイ",k:"넥타이",p:"명사",e:"今日はネクタイをしていません。",ek:"きょうはネクタイをしていません。",eo:"오늘은 넥타이를 안 맸어요."},
+    {w:"ハンカチ",r:"ハンカチ",k:"손수건",p:"명사",e:"ハンカチを貸しましょうか。",ek:"ハンカチをかしましょうか。",eo:"손수건 빌려드릴까요?"},
+    {w:"指輪",r:"ゆびわ",k:"반지",p:"명사",e:"指輪が少しきついです。",ek:"ゆびわがすこしきついです。",eo:"반지가 좀 꽉 껴요."},
+    {w:"サイズ",r:"サイズ",k:"사이즈",p:"명사",e:"もう少し大きいサイズはありますか。",ek:"もうすこしおおきいサイズはありますか。",eo:"좀 더 큰 사이즈 있나요?"},
+    {w:"色",r:"いろ",k:"색깔",p:"명사",e:"他の色はありますか。",ek:"ほかのいろはありますか。",eo:"다른 색은 있나요?"},
+    {w:"白",r:"しろ",k:"흰색",p:"명사",e:"白のシャツをください。",ek:"しろのシャツをください。",eo:"흰 셔츠 주세요."},
+    {w:"黒",r:"くろ",k:"검은색",p:"명사",e:"黒い鞄を探しています。",ek:"くろいかばんをさがしています。",eo:"검은 가방을 찾고 있어요."},
+    {w:"赤",r:"あか",k:"빨간색",p:"명사",e:"赤いペンで書いてください。",ek:"あかいペンでかいてください。",eo:"빨간 펜으로 써주세요."},
+    {w:"青",r:"あお",k:"파란색",p:"명사",e:"青いシャツが似合いますね。",ek:"あおいシャツがにあいますね。",eo:"파란 셔츠가 잘 어울리네요."},
+    {w:"黄色",r:"きいろ",k:"노란색",p:"명사",e:"黄色い傘を持っています。",ek:"きいろいかさをもっています。",eo:"노란 우산을 갖고 있어요."},
+    {w:"着る",r:"きる",k:"입다 (상의)",p:"동사",e:"寒いので一枚多く着ました。",ek:"さむいのでいちまいおおくきました。",eo:"추워서 한 겹 더 입었어요."},
+    {w:"履く",r:"はく",k:"신다, 입다 (하의)",p:"동사",e:"新しい靴を履いてみます。",ek:"あたらしいくつをはいてみます。",eo:"새 신발을 신어볼게요."}
+  ]
+},
+{
+  t:"음식 · 요리",
+  items:[
+    {cover:true, no:"주제 08", t:"음식 · 요리",
+     lead:"가장 자주 쓰게 될 묶음. 주문하고 맛을 말하는 말까지.",
+     peek:["ご飯","野菜","注文","美味しい"]},
+    {w:"ご飯",r:"ごはん",k:"밥, 식사",p:"명사",e:"もうご飯を食べましたか。",ek:"もうごはんをたべましたか。",eo:"밥 먹었어요?"},
+    {w:"朝ご飯",r:"あさごはん",k:"아침밥",p:"명사",e:"朝ご飯は食べない日が多いです。",ek:"あさごはんはたべないひがおおいです。",eo:"아침은 안 먹는 날이 많아요."},
+    {w:"昼ご飯",r:"ひるごはん",k:"점심밥",p:"명사",e:"昼ご飯、一緒にどうですか。",ek:"ひるごはん、いっしょにどうですか。",eo:"점심 같이 어떠세요?"},
+    {w:"晩ご飯",r:"ばんごはん",k:"저녁밥",p:"명사",e:"晩ご飯は外で食べましょう。",ek:"ばんごはんはそとでたべましょう。",eo:"저녁은 밖에서 먹어요."},
+    {w:"食事",r:"しょくじ",k:"식사",p:"명사",e:"食事の前に手を洗います。",ek:"しょくじのまえにてをあらいます。",eo:"식사 전에 손을 씻습니다."},
+    {w:"水",r:"みず",k:"물",p:"명사",e:"お水をもう一杯お願いします。",ek:"おみずをもういっぱいおねがいします。",eo:"물 한 잔 더 주세요."},
+    {w:"お茶",r:"おちゃ",k:"차",p:"명사",e:"お茶でもいかがですか。",ek:"おちゃでもいかがですか。",eo:"차라도 한잔 하실래요?"},
+    {w:"コーヒー",r:"コーヒー",k:"커피",p:"명사",e:"コーヒーは砂糖なしでお願いします。",ek:"コーヒーはさとうなしでおねがいします。",eo:"커피는 설탕 없이 부탁해요."},
+    {w:"牛乳",r:"ぎゅうにゅう",k:"우유",p:"명사",e:"帰りに牛乳を買ってきてください。",ek:"かえりにぎゅうにゅうをかってきてください。",eo:"오는 길에 우유 좀 사다 주세요."},
+    {w:"ジュース",r:"ジュース",k:"주스",p:"명사",e:"子供にはジュースをお願いします。",ek:"こどもにはジュースをおねがいします。",eo:"아이한테는 주스로 주세요."},
+    {w:"ビール",r:"ビール",k:"맥주",p:"명사",e:"とりあえずビールをください。",ek:"とりあえずビールをください。",eo:"우선 맥주 주세요."},
+    {w:"お酒",r:"おさけ",k:"술",p:"명사",e:"今日はお酒はやめておきます。",ek:"きょうはおさけはやめておきます。",eo:"오늘은 술은 안 마실게요."},
+    {w:"パン",r:"パン",k:"빵",p:"명사",e:"朝はパンとコーヒーです。",ek:"あさはパンとコーヒーです。",eo:"아침은 빵과 커피예요."},
+    {w:"肉",r:"にく",k:"고기",p:"명사",e:"私は肉より魚が好きです。",ek:"わたしはにくよりさかながすきです。",eo:"저는 고기보다 생선을 좋아해요."},
+    {w:"魚",r:"さかな",k:"생선, 물고기",p:"명사",e:"この店は魚がおいしいです。",ek:"このみせはさかながおいしいです。",eo:"이 가게는 생선이 맛있어요."},
+    {w:"野菜",r:"やさい",k:"채소",p:"명사",e:"野菜も少し食べたほうがいいですよ。",ek:"やさいもすこしたべたほうがいいですよ。",eo:"채소도 좀 먹는 게 좋아요."},
+    {w:"果物",r:"くだもの",k:"과일",p:"명사",e:"果物は毎朝食べています。",ek:"くだものはまいあさたべています。",eo:"과일은 매일 아침 먹어요."},
+    {w:"卵",r:"たまご",k:"달걀",p:"명사",e:"冷蔵庫に卵がもうありません。",ek:"れいぞうこにたまごがもうありません。",eo:"냉장고에 달걀이 다 떨어졌어요."},
+    {w:"りんご",r:"りんご",k:"사과",p:"명사",e:"りんごを二つください。",ek:"りんごをふたつください。",eo:"사과 두 개 주세요."},
+    {w:"みかん",r:"みかん",k:"귤",p:"명사",e:"冬はみかんをよく食べます。",ek:"ふゆはみかんをよくたべます。",eo:"겨울에는 귤을 자주 먹어요."},
+    {w:"米",r:"こめ",k:"쌀",p:"명사",e:"米が切れそうです。",ek:"こめがきれそうです。",eo:"쌀이 떨어질 것 같아요."},
+    {w:"パスタ",r:"パスタ",k:"파스타",p:"명사",e:"今日はパスタにしましょう。",ek:"きょうはパスタにしましょう。",eo:"오늘은 파스타로 해요."},
+    {w:"ラーメン",r:"ラーメン",k:"라멘",p:"명사",e:"ここのラーメン、本当に美味しいです。",ek:"ここのラーメン、ほんとうにおいしいです。",eo:"여기 라멘 진짜 맛있어요."},
+    {w:"寿司",r:"すし",k:"초밥",p:"명사",e:"久しぶりに寿司を食べました。",ek:"ひさしぶりにすしをたべました。",eo:"오랜만에 초밥을 먹었어요."},
+    {w:"弁当",r:"べんとう",k:"도시락",p:"명사",e:"今日は弁当を持ってきました。",ek:"きょうはべんとうをもってきました。",eo:"오늘은 도시락을 싸왔어요."},
+    {w:"塩",r:"しお",k:"소금",p:"명사",e:"塩を取ってもらえますか。",ek:"しおをとってもらえますか。",eo:"소금 좀 건네주실래요?"},
+    {w:"砂糖",r:"さとう",k:"설탕",p:"명사",e:"砂糖は入れないでください。",ek:"さとうはいれないでください。",eo:"설탕은 넣지 말아주세요."},
+    {w:"醤油",r:"しょうゆ",k:"간장",p:"명사",e:"醤油を少しかけます。",ek:"しょうゆをすこしかけます。",eo:"간장을 조금 뿌립니다."},
+    {w:"油",r:"あぶら",k:"기름",p:"명사",e:"油を少し使います。",ek:"あぶらをすこしつかいます。",eo:"기름을 조금 씁니다."},
+    {w:"味",r:"あじ",k:"맛",p:"명사",e:"味はどうですか。",ek:"あじはどうですか。",eo:"맛은 어때요?"},
+    {w:"お菓子",r:"おかし",k:"과자",p:"명사",e:"お土産にお菓子を買いました。",ek:"おみやげにおかしをかいました。",eo:"선물로 과자를 샀어요."},
+    {w:"ケーキ",r:"ケーキ",k:"케이크",p:"명사",e:"ケーキを半分ずつ分けましょう。",ek:"ケーキをはんぶんずつわけましょう。",eo:"케이크를 반씩 나눠요."},
+    {w:"アイスクリーム",r:"アイスクリーム",k:"아이스크림",p:"명사",e:"暑いのでアイスクリームを買いました。",ek:"あついのでアイスクリームをかいました。",eo:"더워서 아이스크림을 샀어요."},
+    {w:"チョコレート",r:"チョコレート",k:"초콜릿",p:"명사",e:"チョコレートをもらいました。",ek:"チョコレートをもらいました。",eo:"초콜릿을 받았어요."},
+    {w:"皿",r:"さら",k:"접시",p:"명사",e:"皿を洗っておきます。",ek:"さらをあらっておきます。",eo:"접시는 제가 씻어둘게요."},
+    {w:"茶碗",r:"ちゃわん",k:"밥공기, 찻잔",p:"명사",e:"茶碗を割ってしまいました。",ek:"ちゃわんをわってしまいました。",eo:"밥그릇을 깨뜨렸어요."},
+    {w:"箸",r:"はし",k:"젓가락",p:"명사",e:"箸をもう一膳ください。",ek:"はしをもういちぜんください。",eo:"젓가락 한 벌 더 주세요."},
+    {w:"スプーン",r:"スプーン",k:"숟가락",p:"명사",e:"スプーンをいただけますか。",ek:"スプーンをいただけますか。",eo:"숟가락 주실 수 있나요?"},
+    {w:"フォーク",r:"フォーク",k:"포크",p:"명사",e:"フォークもお願いします。",ek:"フォークもおねがいします。",eo:"포크도 부탁해요."},
+    {w:"ナイフ",r:"ナイフ",k:"나이프, 칼",p:"명사",e:"ナイフが見つかりません。",ek:"ナイフがみつかりません。",eo:"나이프가 안 보여요."},
+    {w:"コップ",r:"コップ",k:"컵",p:"명사",e:"コップに水を入れます。",ek:"コップにみずをいれます。",eo:"컵에 물을 따릅니다."},
+    {w:"メニュー",r:"メニュー",k:"메뉴",p:"명사",e:"メニューを見せてください。",ek:"メニューをみせてください。",eo:"메뉴판 좀 보여주세요."},
+    {w:"注文",r:"ちゅうもん",k:"주문",p:"명사",e:"注文をお願いします。",ek:"ちゅうもんをおねがいします。",eo:"주문할게요."},
+    {w:"予約",r:"よやく",k:"예약",p:"명사",e:"七時に予約しています。",ek:"しちじによやくしています。",eo:"7시로 예약했습니다."},
+    {w:"食堂",r:"しょくどう",k:"식당",p:"명사",e:"社員食堂で食べます。",ek:"しゃいんしょくどうでたべます。",eo:"직원 식당에서 먹어요."},
+    {w:"レストラン",r:"レストラン",k:"레스토랑",p:"명사",e:"駅前のレストランに行きましょう。",ek:"えきまえのレストランにいきましょう。",eo:"역 앞 레스토랑에 가요."},
+    {w:"喫茶店",r:"きっさてん",k:"찻집, 카페",p:"명사",e:"喫茶店で待っています。",ek:"きっさてんでまっています。",eo:"카페에서 기다리고 있을게요."},
+    {w:"食べる",r:"たべる",k:"먹다",p:"동사",e:"昼ご飯はもう食べましたか。",ek:"ひるごはんはもうたべましたか。",eo:"점심은 벌써 드셨어요?"},
+    {w:"飲む",r:"のむ",k:"마시다, (약을) 먹다",p:"동사",e:"薬は食後に飲んでください。",ek:"くすりはしょくごにのんでください。",eo:"약은 식후에 드세요."},
+    {w:"作る",r:"つくる",k:"만들다",p:"동사",e:"今日は家でご飯を作ります。",ek:"きょうはいえでごはんをつくります。",eo:"오늘은 집에서 밥을 해요."},
+    {w:"切る",r:"きる",k:"자르다, 끊다",p:"동사",e:"野菜を小さく切ってください。",ek:"やさいをちいさくきってください。",eo:"채소를 잘게 썰어주세요."},
+    {w:"焼く",r:"やく",k:"굽다",p:"동사",e:"魚を焼いています。",ek:"さかなをやいています。",eo:"생선을 굽고 있어요."},
+    {w:"美味しい",r:"おいしい",k:"맛있다",p:"い형용사",e:"ここのラーメン、本当に美味しいです。",ek:"ここのラーメン、ほんとうにおいしいです。",eo:"여기 라멘 진짜 맛있어요."},
+    {w:"まずい",r:"まずい",k:"맛없다",p:"い형용사",e:"正直、少しまずかったです。",ek:"しょうじき、すこしまずかったです。",eo:"솔직히 좀 맛없었어요."},
+    {w:"甘い",r:"あまい",k:"달다",p:"い형용사",e:"このケーキは甘すぎます。",ek:"このケーキはあますぎます。",eo:"이 케이크는 너무 달아요."},
+    {w:"辛い",r:"からい",k:"맵다",p:"い형용사",e:"辛いものは大丈夫ですか。",ek:"からいものはだいじょうぶですか。",eo:"매운 거 괜찮으세요?"},
+    {w:"塩辛い",r:"しおからい",k:"짜다",p:"い형용사",e:"少し塩辛いですね。",ek:"すこししおからいですね。",eo:"좀 짜네요."},
+    {w:"熱い",r:"あつい",k:"뜨겁다",p:"い형용사",e:"熱いのでお気をつけください。",ek:"あついのでおきをつけください。",eo:"뜨거우니 조심하세요."},
+    {w:"冷たい",r:"つめたい",k:"차갑다",p:"い형용사",e:"冷たいお茶はありますか。",ek:"つめたいおちゃはありますか。",eo:"차가운 차 있나요?"},
+    {w:"お腹がすく",r:"おなかがすく",k:"배가 고프다",p:"표현",e:"お腹がすきましたね。",ek:"おなかがすきましたね。",eo:"배고프네요."}
+  ]
+},
+{
+  t:"가게 · 쇼핑 · 돈",
+  items:[
+    {cover:true, no:"주제 09", t:"가게 · 쇼핑 · 돈",
+     lead:"값을 묻고 계산하는 말. 현금만 받는 가게가 아직 많다.",
+     peek:["値段","会計","現金","お釣り"]},
+    {w:"店",r:"みせ",k:"가게",p:"명사",e:"あの店は日曜日も開いています。",ek:"あのみせはにちようびもあいています。",eo:"저 가게는 일요일에도 열어요."},
+    {w:"店員",r:"てんいん",k:"점원",p:"명사",e:"店員さんに聞いてみましょう。",ek:"てんいんさんにきいてみましょう。",eo:"점원한테 물어봐요."},
+    {w:"買い物",r:"かいもの",k:"쇼핑, 장보기",p:"명사",e:"帰りにスーパーで買い物をします。",ek:"かえりにスーパーでかいものをします。",eo:"돌아가는 길에 마트에서 장을 봅니다."},
+    {w:"スーパー",r:"スーパー",k:"슈퍼, 마트",p:"명사",e:"スーパーは十時までです。",ek:"スーパーはじゅうじまでです。",eo:"마트는 10시까지예요."},
+    {w:"コンビニ",r:"コンビニ",k:"편의점",p:"명사",e:"この近くにコンビニはありますか。",ek:"このちかくにコンビニはありますか。",eo:"이 근처에 편의점 있어요?"},
+    {w:"デパート",r:"デパート",k:"백화점",p:"명사",e:"デパートで買いました。",ek:"デパートでかいました。",eo:"백화점에서 샀어요."},
+    {w:"本屋",r:"ほんや",k:"서점",p:"명사",e:"本屋で参考書を買いました。",ek:"ほんやでさんこうしょをかいました。",eo:"서점에서 참고서를 샀어요."},
+    {w:"八百屋",r:"やおや",k:"채소가게",p:"명사",e:"八百屋で野菜を買います。",ek:"やおやでやさいをかいます。",eo:"채소가게에서 채소를 삽니다."},
+    {w:"お金",r:"おかね",k:"돈",p:"명사",e:"お金が足りません。",ek:"おかねがたりません。",eo:"돈이 모자라요."},
+    {w:"現金",r:"げんきん",k:"현금",p:"명사",e:"現金しか使えない店もあります。",ek:"げんきんしかつかえないみせもあります。",eo:"현금만 되는 가게도 있어요."},
+    {w:"カード",r:"カード",k:"카드",p:"명사",e:"カードで払えますか。",ek:"カードではらえますか。",eo:"카드로 결제 되나요?"},
+    {w:"会計",r:"かいけい",k:"계산",p:"명사",e:"すみません、お会計をお願いします。",ek:"すみません、おかいけいをおねがいします。",eo:"저기요, 계산해 주세요."},
+    {w:"値段",r:"ねだん",k:"가격",p:"명사",e:"値段は書いてありますか。",ek:"ねだんはかいてありますか。",eo:"가격이 적혀 있나요?"},
+    {w:"レシート",r:"レシート",k:"영수증",p:"명사",e:"レシートをいただけますか。",ek:"レシートをいただけますか。",eo:"영수증 주시겠어요?"},
+    {w:"お釣り",r:"おつり",k:"거스름돈",p:"명사",e:"お釣りをどうぞ。",ek:"おつりをどうぞ。",eo:"거스름돈 여기 있습니다."},
+    {w:"切符",r:"きっぷ",k:"표, 티켓",p:"명사",e:"切符はどこで買えますか。",ek:"きっぷはどこでかえますか。",eo:"표는 어디서 살 수 있나요?"},
+    {w:"品物",r:"しなもの",k:"물건, 상품",p:"명사",e:"品物はもう届きました。",ek:"しなものはもうとどきました。",eo:"물건은 이미 도착했어요."},
+    {w:"お土産",r:"おみやげ",k:"기념품, 선물",p:"명사",e:"京都のお土産です。どうぞ。",ek:"きょうとのおみやげです。どうぞ。",eo:"교토 기념품이에요. 드세요."},
+    {w:"プレゼント",r:"プレゼント",k:"선물",p:"명사",e:"誕生日のプレゼントを選んでいます。",ek:"たんじょうびのプレゼントをえらんでいます。",eo:"생일 선물을 고르고 있어요."},
+    {w:"買う",r:"かう",k:"사다",p:"동사",e:"帰りに牛乳を買ってきてください。",ek:"かえりにぎゅうにゅうをかってきてください。",eo:"오는 길에 우유 좀 사다 주세요."},
+    {w:"売る",r:"うる",k:"팔다",p:"동사",e:"ここでは切符も売っています。",ek:"ここではきっぷもうっています。",eo:"여기서는 표도 팔아요."},
+    {w:"払う",r:"はらう",k:"지불하다",p:"동사",e:"あとでまとめて払います。",ek:"あとでまとめてはらいます。",eo:"나중에 한꺼번에 낼게요."},
+    {w:"選ぶ",r:"えらぶ",k:"고르다",p:"동사",e:"好きなものを選んでください。",ek:"すきなものをえらんでください。",eo:"좋아하는 걸로 고르세요."},
+    {w:"探す",r:"さがす",k:"찾다",p:"동사",e:"黒い鞄を探しています。",ek:"くろいかばんをさがしています。",eo:"검은 가방을 찾고 있어요."},
+    {w:"高い",r:"たかい",k:"비싸다, 높다",p:"い형용사",e:"この辺は家賃が高いですね。",ek:"このへんはやちんがたかいですね。",eo:"이 근처는 월세가 비싸네요."},
+    {w:"安い",r:"やすい",k:"싸다",p:"い형용사",e:"あの店のほうが安いですよ。",ek:"あのみせのほうがやすいですよ。",eo:"저 가게가 더 싸요."},
+    {w:"銀行",r:"ぎんこう",k:"은행",p:"명사",e:"銀行は三時に閉まります。",ek:"ぎんこうはさんじにしまります。",eo:"은행은 3시에 문을 닫습니다."},
+    {w:"郵便局",r:"ゆうびんきょく",k:"우체국",p:"명사",e:"郵便局で切手を買います。",ek:"ゆうびんきょくできってをかいます。",eo:"우체국에서 우표를 삽니다."},
+    {w:"切手",r:"きって",k:"우표",p:"명사",e:"切手を三枚ください。",ek:"きってをさんまいください。",eo:"우표 세 장 주세요."},
+    {w:"封筒",r:"ふうとう",k:"봉투",p:"명사",e:"封筒に入れて出します。",ek:"ふうとうにいれてだします。",eo:"봉투에 넣어서 부칩니다."},
+    {w:"はがき",r:"はがき",k:"엽서",p:"명사",e:"友達にはがきを出しました。",ek:"ともだちにはがきをだしました。",eo:"친구에게 엽서를 보냈어요."},
+    {w:"荷物を送る",r:"にもつをおくる",k:"짐을 보내다",p:"표현",e:"荷物を送りたいのですが。",ek:"にもつをおくりたいのですが。",eo:"짐을 보내고 싶은데요."},
+    {w:"サービス",r:"サービス",k:"서비스",p:"명사",e:"ここはサービスがいいです。",ek:"ここはサービスがいいです。",eo:"여기는 서비스가 좋아요."},
+    {w:"営業",r:"えいぎょう",k:"영업",p:"명사",e:"営業は九時からです。",ek:"えいぎょうはくじからです。",eo:"영업은 9시부터입니다."},
+    {w:"閉店",r:"へいてん",k:"폐점, 마감",p:"명사",e:"閉店は八時です。",ek:"へいてんははちじです。",eo:"마감은 8시입니다."}
+  ]
+},
+{
+  t:"장소 · 건물",
+  items:[
+    {cover:true, no:"주제 10", t:"장소 · 건물",
+     lead:"길을 묻고 찾아가는 데 필요한 이름들.",
+     peek:["駅","銀行","建物","交番"]},
+    {w:"所",r:"ところ",k:"곳, 장소",p:"명사",e:"静かな所で話しましょう。",ek:"しずかなところではなしましょう。",eo:"조용한 곳에서 얘기해요."},
+    {w:"会社",r:"かいしゃ",k:"회사",p:"명사",e:"会社まで電車で三十分かかります。",ek:"かいしゃまででんしゃでさんじゅっぷんかかります。",eo:"회사까지 전철로 30분 걸려요."},
+    {w:"駅",r:"えき",k:"역",p:"명사",e:"駅の改札口で待っています。",ek:"えきのかいさつぐちでまっています。",eo:"역 개찰구에서 기다리고 있을게요."},
+    {w:"病院",r:"びょういん",k:"병원",p:"명사",e:"熱が下がらないので病院に行きます。",ek:"ねつがさがらないのでびょういんにいきます。",eo:"열이 안 내려서 병원에 갑니다."},
+    {w:"学校",r:"がっこう",k:"학교",p:"명사",e:"学校は駅のすぐそばです。",ek:"がっこうはえきのすぐそばです。",eo:"학교는 역 바로 옆이에요."},
+    {w:"図書館",r:"としょかん",k:"도서관",p:"명사",e:"図書館で本を借りました。",ek:"としょかんでほんをかりました。",eo:"도서관에서 책을 빌렸어요."},
+    {w:"公園",r:"こうえん",k:"공원",p:"명사",e:"公園を散歩しました。",ek:"こうえんをさんぽしました。",eo:"공원을 산책했어요."},
+    {w:"映画館",r:"えいがかん",k:"영화관",p:"명사",e:"映画館は五階です。",ek:"えいがかんはごかいです。",eo:"영화관은 5층이에요."},
+    {w:"美術館",r:"びじゅつかん",k:"미술관",p:"명사",e:"美術館は月曜日が休みです。",ek:"びじゅつかんはげつようびがやすみです。",eo:"미술관은 월요일이 휴관이에요."},
+    {w:"ホテル",r:"ホテル",k:"호텔",p:"명사",e:"ホテルは駅から近いです。",ek:"ホテルはえきからちかいです。",eo:"호텔은 역에서 가까워요."},
+    {w:"空港",r:"くうこう",k:"공항",p:"명사",e:"空港まで迎えに行きます。",ek:"くうこうまでむかえにいきます。",eo:"공항까지 마중 나갈게요."},
+    {w:"交番",r:"こうばん",k:"파출소",p:"명사",e:"交番で道を聞きました。",ek:"こうばんでみちをききました。",eo:"파출소에서 길을 물었어요."},
+    {w:"教室",r:"きょうしつ",k:"교실",p:"명사",e:"教室は三階にあります。",ek:"きょうしつはさんがいにあります。",eo:"교실은 3층에 있어요."},
+    {w:"事務所",r:"じむしょ",k:"사무소, 사무실",p:"명사",e:"事務所は今日は休みです。",ek:"じむしょはきょうはやすみです。",eo:"사무실은 오늘 쉽니다."},
+    {w:"工場",r:"こうじょう",k:"공장",p:"명사",e:"工場は町の外にあります。",ek:"こうじょうはまちのそとにあります。",eo:"공장은 시내 밖에 있어요."},
+    {w:"建物",r:"たてもの",k:"건물",p:"명사",e:"あの白い建物です。",ek:"あのしろいたてものです。",eo:"저 흰 건물이에요."},
+    {w:"町",r:"まち",k:"동네, 시내",p:"명사",e:"この町は静かでいいですね。",ek:"このまちはしずかでいいですね。",eo:"이 동네는 조용해서 좋네요."},
+    {w:"村",r:"むら",k:"마을",p:"명사",e:"小さな村で育ちました。",ek:"ちいさなむらでそだちました。",eo:"작은 마을에서 자랐어요."},
+    {w:"国",r:"くに",k:"나라, 고향",p:"명사",e:"お国はどちらですか。",ek:"おくにはどちらですか。",eo:"어느 나라에서 오셨어요?"},
+    {w:"外国",r:"がいこく",k:"외국",p:"명사",e:"外国で働いてみたいです。",ek:"がいこくではたらいてみたいです。",eo:"외국에서 일해보고 싶어요."},
+    {w:"日本",r:"にほん",k:"일본",p:"명사",e:"日本には去年来ました。",ek:"にほんにはきょねんきました。",eo:"일본에는 작년에 왔어요."},
+    {w:"韓国",r:"かんこく",k:"한국",p:"명사",e:"韓国から来ました。",ek:"かんこくからきました。",eo:"한국에서 왔습니다."},
+    {w:"部屋番号",r:"へやばんごう",k:"방 번호",p:"명사",e:"部屋番号を教えてください。",ek:"へやばんごうをおしえてください。",eo:"방 번호를 알려주세요."},
+    {w:"受付",r:"うけつけ",k:"접수처",p:"명사",e:"受付で名前を書きます。",ek:"うけつけでなまえをかきます。",eo:"접수처에서 이름을 적습니다."},
+    {w:"入口",r:"いりぐち",k:"입구",p:"명사",e:"入口は反対側です。",ek:"いりぐちははんたいがわです。",eo:"입구는 반대쪽이에요."},
+    {w:"出口",r:"でぐち",k:"출구",p:"명사",e:"東出口で待ち合わせましょう。",ek:"ひがしでぐちでまちあわせましょう。",eo:"동쪽 출구에서 만나요."},
+    {w:"席",r:"せき",k:"자리, 좌석",p:"명사",e:"この席、空いていますか。",ek:"このせき、あいていますか。",eo:"이 자리 비었나요?"},
+    {w:"エレベーター",r:"エレベーター",k:"엘리베이터",p:"명사",e:"エレベーターは左にあります。",ek:"エレベーターはひだりにあります。",eo:"엘리베이터는 왼쪽에 있습니다."},
+    {w:"駐車場",r:"ちゅうしゃじょう",k:"주차장",p:"명사",e:"駐車場は建物の裏です。",ek:"ちゅうしゃじょうはたてもののうらです。",eo:"주차장은 건물 뒤편이에요."},
+    {w:"トイレの場所",r:"トイレのばしょ",k:"화장실 위치",p:"표현",e:"トイレの場所を教えてください。",ek:"トイレのばしょをおしえてください。",eo:"화장실 위치 좀 알려주세요."},
+    {w:"場所",r:"ばしょ",k:"장소, 위치",p:"명사",e:"待ち合わせの場所はどこですか。",ek:"まちあわせのばしょはどこですか。",eo:"만나는 장소가 어디예요?"},
+    {w:"地図",r:"ちず",k:"지도",p:"명사",e:"地図を見せてもらえますか。",ek:"ちずをみせてもらえますか。",eo:"지도 좀 보여주실래요?"},
+    {w:"住宅",r:"じゅうたく",k:"주택",p:"명사",e:"この辺は住宅が多いです。",ek:"このへんはじゅうたくがおおいです。",eo:"이 근처는 주택이 많아요."},
+    {w:"ビル",r:"ビル",k:"빌딩",p:"명사",e:"あのビルの三階です。",ek:"あのビルのさんがいです。",eo:"저 빌딩 3층이에요."},
+    {w:"神社",r:"じんじゃ",k:"신사",p:"명사",e:"正月に神社へ行きます。",ek:"しょうがつにじんじゃへいきます。",eo:"설날에 신사에 갑니다."},
+    {w:"お寺",r:"おてら",k:"절",p:"명사",e:"古いお寺を見に行きました。",ek:"ふるいおてらをみにいきました。",eo:"오래된 절을 보러 갔어요."},
+    {w:"温泉",r:"おんせん",k:"온천",p:"명사",e:"週末に温泉に行きませんか。",ek:"しゅうまつにおんせんにいきませんか。",eo:"주말에 온천 가지 않을래요?"},
+    {w:"海",r:"うみ",k:"바다",p:"명사",e:"夏は海に行きたいです。",ek:"なつはうみにいきたいです。",eo:"여름엔 바다에 가고 싶어요."},
+    {w:"山",r:"やま",k:"산",p:"명사",e:"来月、山に登ります。",ek:"らいげつ、やまにのぼります。",eo:"다음 달에 산에 오릅니다."},
+    {w:"川",r:"かわ",k:"강",p:"명사",e:"川の近くを歩きました。",ek:"かわのちかくをあるきました。",eo:"강 근처를 걸었어요."},
+    {w:"道",r:"みち",k:"길",p:"명사",e:"すみません、道を教えてください。",ek:"すみません、みちをおしえてください。",eo:"실례합니다, 길 좀 알려주세요."},
+    {w:"橋",r:"はし",k:"다리",p:"명사",e:"橋を渡ってすぐです。",ek:"はしをわたってすぐです。",eo:"다리를 건너면 바로예요."},
+    {w:"角",r:"かど",k:"모퉁이",p:"명사",e:"次の角を右に曲がってください。",ek:"つぎのかどをみぎにまがってください。",eo:"다음 모퉁이에서 오른쪽으로 도세요."},
+    {w:"信号",r:"しんごう",k:"신호등",p:"명사",e:"信号を渡ったら左です。",ek:"しんごうをわたったらひだりです。",eo:"신호등을 건너면 왼쪽이에요."},
+    {w:"近所",r:"きんじょ",k:"근처, 동네",p:"명사",e:"近所にいい店があります。",ek:"きんじょにいいみせがあります。",eo:"동네에 괜찮은 가게가 있어요."}
+  ]
+},
+{
+  t:"교통 · 이동",
+  items:[
+    {cover:true, no:"주제 11", t:"교통 · 이동",
+     lead:"타고 내리고 갈아탄다. 電車가 늦는 상황까지.",
+     peek:["電車","乗り換える","切符","間に合う"]},
+    {w:"電車",r:"でんしゃ",k:"전철",p:"명사",e:"電車が遅れて、遅刻しました。",ek:"でんしゃがおくれて、ちこくしました。",eo:"전철이 늦어서 지각했어요."},
+    {w:"地下鉄",r:"ちかてつ",k:"지하철",p:"명사",e:"地下鉄のほうが早いです。",ek:"ちかてつのほうがはやいです。",eo:"지하철이 더 빨라요."},
+    {w:"バス",r:"バス",k:"버스",p:"명사",e:"バスは十分おきに来ます。",ek:"バスはじゅっぷんおきにきます。",eo:"버스는 10분 간격으로 옵니다."},
+    {w:"タクシー",r:"タクシー",k:"택시",p:"명사",e:"タクシーで行きましょう。",ek:"タクシーでいきましょう。",eo:"택시로 갑시다."},
+    {w:"車",r:"くるま",k:"자동차",p:"명사",e:"車で送りますよ。",ek:"くるまでおくりますよ。",eo:"차로 데려다드릴게요."},
+    {w:"自転車",r:"じてんしゃ",k:"자전거",p:"명사",e:"自転車で通っています。",ek:"じてんしゃでかよっています。",eo:"자전거로 다니고 있어요."},
+    {w:"飛行機",r:"ひこうき",k:"비행기",p:"명사",e:"飛行機は九時に出ます。",ek:"ひこうきはくじにでます。",eo:"비행기는 9시에 출발합니다."},
+    {w:"船",r:"ふね",k:"배",p:"명사",e:"船で島に渡ります。",ek:"ふねでしまにわたります。",eo:"배로 섬에 건너갑니다."},
+    {w:"新幹線",r:"しんかんせん",k:"신칸센",p:"명사",e:"新幹線の切符を取りました。",ek:"しんかんせんのきっぷをとりました。",eo:"신칸센 표를 끊었어요."},
+    {w:"乗る",r:"のる",k:"타다",p:"동사",e:"三番線の電車に乗ってください。",ek:"さんばんせんのでんしゃにのってください。",eo:"3번 선 전철을 타세요."},
+    {w:"降りる",r:"おりる",k:"내리다",p:"동사",e:"次の駅で降ります。",ek:"つぎのえきでおります。",eo:"다음 역에서 내려요."},
+    {w:"乗り換える",r:"のりかえる",k:"갈아타다",p:"동사",e:"新宿で乗り換えてください。",ek:"しんじゅくでのりかえてください。",eo:"신주쿠에서 갈아타세요."},
+    {w:"歩く",r:"あるく",k:"걷다",p:"동사",e:"毎日三十分ぐらい歩いています。",ek:"まいにちさんじゅっぷんぐらいあるいています。",eo:"매일 30분 정도 걷고 있어요."},
+    {w:"走る",r:"はしる",k:"달리다",p:"동사",e:"朝、公園を走っています。",ek:"あさ、こうえんをはしっています。",eo:"아침에 공원을 달립니다."},
+    {w:"渡る",r:"わたる",k:"건너다",p:"동사",e:"信号を渡ってください。",ek:"しんごうをわたってください。",eo:"신호등을 건너세요."},
+    {w:"曲がる",r:"まがる",k:"돌다, 꺾다",p:"동사",e:"そこを左に曲がります。",ek:"そこをひだりにまがります。",eo:"거기서 왼쪽으로 돕니다."},
+    {w:"着く",r:"つく",k:"도착하다",p:"동사",e:"もうすぐ着きます。",ek:"もうすぐつきます。",eo:"곧 도착해요."},
+    {w:"出発",r:"しゅっぱつ",k:"출발",p:"명사",e:"出発は八時です。",ek:"しゅっぱつははちじです。",eo:"출발은 8시입니다."},
+    {w:"到着",r:"とうちゃく",k:"도착",p:"명사",e:"到着は夕方の予定です。",ek:"とうちゃくはゆうがたのよていです。",eo:"도착은 저녁 예정입니다."},
+    {w:"旅行",r:"りょこう",k:"여행",p:"명사",e:"来月、旅行に行きます。",ek:"らいげつ、りょこうにいきます。",eo:"다음 달에 여행 갑니다."},
+    {w:"散歩",r:"さんぽ",k:"산책",p:"명사",e:"父は毎朝散歩に行きます。",ek:"ちちはまいあささんぽにいきます。",eo:"아버지는 매일 아침 산책하러 가십니다."},
+    {w:"道路",r:"どうろ",k:"도로",p:"명사",e:"この道路は混みます。",ek:"このどうろはこみます。",eo:"이 도로는 막혀요."},
+    {w:"通る",r:"とおる",k:"지나가다",p:"동사",e:"ここは車がよく通ります。",ek:"ここはくるまがよくとおります。",eo:"여기는 차가 자주 지나가요."},
+    {w:"急ぐ",r:"いそぐ",k:"서두르다",p:"동사",e:"急がなくても大丈夫です。",ek:"いそがなくてもだいじょうぶです。",eo:"서두르지 않아도 괜찮아요."},
+    {w:"遅れる",r:"おくれる",k:"늦다, 지연되다",p:"동사",e:"少し遅れます。すみません。",ek:"すこしおくれます。すみません。",eo:"조금 늦겠습니다. 죄송해요."},
+    {w:"間に合う",r:"まにあう",k:"시간에 맞추다",p:"동사",e:"走れば間に合います。",ek:"はしればまにあいます。",eo:"뛰면 늦지 않아요."},
+    {w:"迎える",r:"むかえる",k:"맞이하다, 마중하다",p:"동사",e:"駅まで迎えに行きます。",ek:"えきまでむかえにいきます。",eo:"역까지 마중 나갈게요."},
+    {w:"混む",r:"こむ",k:"붐비다",p:"동사",e:"朝の電車は混みます。",ek:"あさのでんしゃはこみます。",eo:"아침 전철은 붐빕니다."},
+    {w:"線",r:"せん",k:"선, 노선",p:"명사",e:"何線に乗ればいいですか。",ek:"なにせんにのればいいですか。",eo:"무슨 선을 타면 되나요?"},
+    {w:"運転",r:"うんてん",k:"운전",p:"명사",e:"今日は運転しません。",ek:"きょうはうんてんしません。",eo:"오늘은 운전 안 해요."}
+  ]
+},
+{
+  t:"위치 · 방향",
+  items:[
+    {cover:true, no:"주제 12", t:"위치 · 방향",
+     lead:"「어디에」를 말하는 말. 위아래앞뒤와 동서남북.",
+     peek:["上","右","間","真っ直ぐ"]},
+    {w:"上",r:"うえ",k:"위",p:"명사",e:"机の上に置いてあります。",ek:"つくえのうえにおいてあります。",eo:"책상 위에 놓여 있어요."},
+    {w:"下",r:"した",k:"아래",p:"명사",e:"椅子の下を見てください。",ek:"いすのしたをみてください。",eo:"의자 밑을 봐주세요."},
+    {w:"中",r:"なか",k:"안, 속",p:"명사",e:"鞄の中に入っています。",ek:"かばんのなかにはいっています。",eo:"가방 안에 들어 있어요."},
+    {w:"外",r:"そと",k:"밖",p:"명사",e:"外は寒いですよ。",ek:"そとはさむいですよ。",eo:"밖은 추워요."},
+    {w:"右",r:"みぎ",k:"오른쪽",p:"명사",e:"次の角を右に曲がってください。",ek:"つぎのかどをみぎにまがってください。",eo:"다음 모퉁이에서 오른쪽으로 도세요."},
+    {w:"左",r:"ひだり",k:"왼쪽",p:"명사",e:"エレベーターは左にあります。",ek:"エレベーターはひだりにあります。",eo:"엘리베이터는 왼쪽에 있습니다."},
+    {w:"前",r:"まえ",k:"앞",p:"명사",e:"駅の前で待っています。",ek:"えきのまえでまっています。",eo:"역 앞에서 기다릴게요."},
+    {w:"後ろ",r:"うしろ",k:"뒤",p:"명사",e:"後ろの席が空いています。",ek:"うしろのせきがあいています。",eo:"뒷자리가 비어 있어요."},
+    {w:"横",r:"よこ",k:"옆",p:"명사",e:"銀行の横にあります。",ek:"ぎんこうのよこにあります。",eo:"은행 옆에 있어요."},
+    {w:"間",r:"あいだ",k:"사이",p:"명사",e:"本屋と銀行の間です。",ek:"ほんやとぎんこうのあいだです。",eo:"서점과 은행 사이예요."},
+    {w:"近く",r:"ちかく",k:"근처",p:"명사",e:"この近くにコンビニはありますか。",ek:"このちかくにコンビニはありますか。",eo:"이 근처에 편의점 있어요?"},
+    {w:"そば",r:"そば",k:"곁, 바로 옆",p:"명사",e:"学校は駅のすぐそばです。",ek:"がっこうはえきのすぐそばです。",eo:"학교는 역 바로 옆이에요."},
+    {w:"向こう",r:"むこう",k:"저쪽, 건너편",p:"명사",e:"向こうに見える建物です。",ek:"むこうにみえるたてものです。",eo:"저쪽에 보이는 건물이에요."},
+    {w:"隣",r:"となり",k:"옆, 이웃",p:"명사",e:"隣の部屋にいます。",ek:"となりのへやにいます。",eo:"옆방에 있어요."},
+    {w:"東",r:"ひがし",k:"동쪽",p:"명사",e:"東出口を出てください。",ek:"ひがしでぐちをでてください。",eo:"동쪽 출구로 나오세요."},
+    {w:"西",r:"にし",k:"서쪽",p:"명사",e:"西口で待ち合わせます。",ek:"にしぐちでまちあわせます。",eo:"서쪽 출구에서 만납니다."},
+    {w:"南",r:"みなみ",k:"남쪽",p:"명사",e:"南の方は暖かいです。",ek:"みなみのほうはあたたかいです。",eo:"남쪽은 따뜻해요."},
+    {w:"北",r:"きた",k:"북쪽",p:"명사",e:"北の窓は寒いです。",ek:"きたのまどはさむいです。",eo:"북쪽 창문은 추워요."},
+    {w:"こちら",r:"こちら",k:"이쪽",p:"대명사",e:"こちらへどうぞ。",ek:"こちらへどうぞ。",eo:"이쪽으로 오세요."},
+    {w:"そちら",r:"そちら",k:"그쪽",p:"대명사",e:"そちらはいかがですか。",ek:"そちらはいかがですか。",eo:"그쪽은 어떠세요?"},
+    {w:"あちら",r:"あちら",k:"저쪽",p:"대명사",e:"お手洗いはあちらです。",ek:"おてあらいはあちらです。",eo:"화장실은 저쪽입니다."},
+    {w:"どちら",r:"どちら",k:"어느 쪽",p:"의문",e:"どちらがいいですか。",ek:"どちらがいいですか。",eo:"어느 쪽이 좋으세요?"},
+    {w:"真っ直ぐ",r:"まっすぐ",k:"곧장, 똑바로",p:"부사",e:"この道を真っ直ぐ行ってください。",ek:"このみちをまっすぐいってください。",eo:"이 길을 곧장 가세요."},
+    {w:"反対",r:"はんたい",k:"반대",p:"명사",e:"入口は反対側です。",ek:"いりぐちははんたいがわです。",eo:"입구는 반대쪽이에요."},
+    {w:"辺り",r:"あたり",k:"근방, 부근",p:"명사",e:"この辺りは静かです。",ek:"このあたりはしずかです。",eo:"이 근방은 조용해요."}
+  ]
+},
+{
+  t:"학교 · 공부",
+  items:[
+    {cover:true, no:"주제 13", t:"학교 · 공부",
+     lead:"배우는 자리에서 쓰는 말. 이 단어장 자체에 관한 말이기도 하다.",
+     peek:["勉強","漢字","辞書","覚える"]},
+    {w:"勉強",r:"べんきょう",k:"공부",p:"명사",e:"毎晩少しずつ勉強しています。",ek:"まいばんすこしずつべんきょうしています。",eo:"매일 밤 조금씩 공부하고 있어요."},
+    {w:"授業",r:"じゅぎょう",k:"수업",p:"명사",e:"授業は九時からです。",ek:"じゅぎょうはくじからです。",eo:"수업은 9시부터입니다."},
+    {w:"宿題",r:"しゅくだい",k:"숙제",p:"명사",e:"宿題はもう終わりました。",ek:"しゅくだいはもうおわりました。",eo:"숙제는 벌써 끝냈어요."},
+    {w:"試験",r:"しけん",k:"시험",p:"명사",e:"来週、試験があります。",ek:"らいしゅう、しけんがあります。",eo:"다음 주에 시험이 있어요."},
+    {w:"テスト",r:"テスト",k:"테스트, 시험",p:"명사",e:"テストの結果はまだです。",ek:"テストのけっかはまだです。",eo:"시험 결과는 아직이에요."},
+    {w:"問題",r:"もんだい",k:"문제",p:"명사",e:"この問題が分かりません。",ek:"このもんだいがわかりません。",eo:"이 문제를 모르겠어요."},
+    {w:"答え",r:"こたえ",k:"답",p:"명사",e:"答えはここに書いてください。",ek:"こたえはここにかいてください。",eo:"답은 여기에 적어주세요."},
+    {w:"質問",r:"しつもん",k:"질문",p:"명사",e:"質問があればどうぞ。",ek:"しつもんがあればどうぞ。",eo:"질문 있으면 하세요."},
+    {w:"言葉",r:"ことば",k:"말, 단어",p:"명사",e:"この言葉の意味は何ですか。",ek:"このことばのいみはなんですか。",eo:"이 말의 뜻이 뭐예요?"},
+    {w:"意味",r:"いみ",k:"의미, 뜻",p:"명사",e:"意味が分かりませんでした。",ek:"いみがわかりませんでした。",eo:"뜻을 몰랐어요."},
+    {w:"字",r:"じ",k:"글자",p:"명사",e:"字が小さくて読めません。",ek:"じがちいさくてよめません。",eo:"글자가 작아서 못 읽겠어요."},
+    {w:"漢字",r:"かんじ",k:"한자",p:"명사",e:"漢字を毎日十個覚えます。",ek:"かんじをまいにちじゅっこおぼえます。",eo:"한자를 매일 열 개 외웁니다."},
+    {w:"英語",r:"えいご",k:"영어",p:"명사",e:"英語で説明してもらえますか。",ek:"えいごでせつめいしてもらえますか。",eo:"영어로 설명해 주실 수 있나요?"},
+    {w:"日本語",r:"にほんご",k:"일본어",p:"명사",e:"日本語はまだ上手ではありません。",ek:"にほんごはまだじょうずではありません。",eo:"일본어는 아직 잘 못해요."},
+    {w:"辞書",r:"じしょ",k:"사전",p:"명사",e:"辞書で調べてみます。",ek:"じしょでしらべてみます。",eo:"사전으로 찾아볼게요."},
+    {w:"教科書",r:"きょうかしょ",k:"교과서",p:"명사",e:"教科書の十ページを開いてください。",ek:"きょうかしょのじゅっページをひらいてください。",eo:"교과서 10페이지를 펴세요."},
+    {w:"ノート",r:"ノート",k:"공책",p:"명사",e:"ノートに書いておきます。",ek:"ノートにかいておきます。",eo:"공책에 적어둘게요."},
+    {w:"ペン",r:"ペン",k:"펜",p:"명사",e:"ペンを貸してもらえますか。",ek:"ペンをかしてもらえますか。",eo:"펜 좀 빌려주실래요?"},
+    {w:"鉛筆",r:"えんぴつ",k:"연필",p:"명사",e:"鉛筆で書いてください。",ek:"えんぴつでかいてください。",eo:"연필로 써주세요."},
+    {w:"消しゴム",r:"けしゴム",k:"지우개",p:"명사",e:"消しゴムを忘れました。",ek:"けしゴムをわすれました。",eo:"지우개를 안 가져왔어요."},
+    {w:"大学",r:"だいがく",k:"대학",p:"명사",e:"大学で経済を学びました。",ek:"だいがくでけいざいをまなびました。",eo:"대학에서 경제를 공부했어요."},
+    {w:"小学校",r:"しょうがっこう",k:"초등학교",p:"명사",e:"娘は今年小学校に入ります。",ek:"むすめはことししょうがっこうにはいります。",eo:"딸은 올해 초등학교에 들어가요."},
+    {w:"クラス",r:"クラス",k:"반, 클래스",p:"명사",e:"同じクラスでした。",ek:"おなじクラスでした。",eo:"같은 반이었어요."},
+    {w:"留学生",r:"りゅうがくせい",k:"유학생",p:"명사",e:"留学生も参加できます。",ek:"りゅうがくせいもさんかできます。",eo:"유학생도 참가할 수 있어요."},
+    {w:"習う",r:"ならう",k:"배우다",p:"동사",e:"ピアノを習っています。",ek:"ピアノをならっています。",eo:"피아노를 배우고 있어요."},
+    {w:"教える",r:"おしえる",k:"가르치다, 알려주다",p:"동사",e:"やり方を教えてください。",ek:"やりかたをおしえてください。",eo:"방법을 알려주세요."},
+    {w:"覚える",r:"おぼえる",k:"외우다, 기억하다",p:"동사",e:"名前をまだ覚えていません。",ek:"なまえをまだおぼえていません。",eo:"이름을 아직 못 외웠어요."},
+    {w:"忘れる",r:"わすれる",k:"잊다, 두고 오다",p:"동사",e:"パスワードを忘れてしまいました。",ek:"パスワードをわすれてしまいました。",eo:"비밀번호를 잊어버렸어요."},
+    {w:"読む",r:"よむ",k:"읽다",p:"동사",e:"寝る前に本を読みます。",ek:"ねるまえにほんをよみます。",eo:"자기 전에 책을 읽습니다."},
+    {w:"書く",r:"かく",k:"쓰다",p:"동사",e:"ここに名前を書いてください。",ek:"ここになまえをかいてください。",eo:"여기에 이름을 적어주세요."},
+    {w:"調べる",r:"しらべる",k:"조사하다, 알아보다",p:"동사",e:"あとで調べておきます。",ek:"あとでしらべておきます。",eo:"나중에 알아볼게요."},
+    {w:"考える",r:"かんがえる",k:"생각하다",p:"동사",e:"少し考えさせてください。",ek:"すこしかんがえさせてください。",eo:"조금 생각할 시간을 주세요."},
+    {w:"分かる",r:"わかる",k:"알다, 이해하다",p:"동사",e:"すみません、よく分かりませんでした。",ek:"すみません、よくわかりませんでした。",eo:"죄송해요, 잘 못 알아들었어요."},
+    {w:"知る",r:"しる",k:"알다",p:"동사",e:"その店なら知っています。",ek:"そのみせならしっています。",eo:"그 가게라면 알아요."},
+    {w:"説明",r:"せつめい",k:"설명",p:"명사",e:"説明がとても分かりやすかったです。",ek:"せつめいがとてもわかりやすかったです。",eo:"설명이 아주 이해하기 쉬웠어요."},
+    {w:"練習",r:"れんしゅう",k:"연습",p:"명사",e:"毎日発音の練習をします。",ek:"まいにちはつおんのれんしゅうをします。",eo:"매일 발음 연습을 합니다."},
+    {w:"復習",r:"ふくしゅう",k:"복습",p:"명사",e:"今日の復習をしておきます。",ek:"きょうのふくしゅうをしておきます。",eo:"오늘 배운 걸 복습해 둘게요."},
+    {w:"意見",r:"いけん",k:"의견",p:"명사",e:"ご意見をお聞かせください。",ek:"ごいけんをおきかせください。",eo:"의견을 들려주세요."},
+    {w:"卒業",r:"そつぎょう",k:"졸업",p:"명사",e:"来年の三月に卒業します。",ek:"らいねんのさんがつにそつぎょうします。",eo:"내년 3월에 졸업합니다."},
+    {w:"入学",r:"にゅうがく",k:"입학",p:"명사",e:"四月に入学しました。",ek:"しがつににゅうがくしました。",eo:"4월에 입학했어요."},
+    {w:"難しい",r:"むずかしい",k:"어렵다",p:"い형용사",e:"この問題は少し難しいです。",ek:"このもんだいはすこしむずかしいです。",eo:"이 문제는 좀 어려워요."},
+    {w:"易しい",r:"やさしい",k:"쉽다",p:"い형용사",e:"今日のテストは易しかったです。",ek:"きょうのテストはやさしかったです。",eo:"오늘 시험은 쉬웠어요."},
+    {w:"発音",r:"はつおん",k:"발음",p:"명사",e:"発音を直してもらいました。",ek:"はつおんをなおしてもらいました。",eo:"발음을 고쳐 받았어요."},
+    {w:"下手",r:"へた",k:"서투름",p:"な형용사",e:"字が下手ですみません。",ek:"じがへたですみません。",eo:"글씨가 서툴러서 죄송해요."},
+    {w:"間違える",r:"まちがえる",k:"틀리다, 잘못하다",p:"동사",e:"名前を間違えてしまいました。",ek:"なまえをまちがえてしまいました。",eo:"이름을 잘못 썼어요."}
+  ]
+},
+{
+  t:"일 · 회사",
+  items:[
+    {cover:true, no:"주제 14", t:"일 · 회사",
+     lead:"회의·자료·잔업. 일본 회사에서 하루 종일 듣게 되는 말.",
+     peek:["会議","資料","残業","出張"]},
+    {w:"仕事",r:"しごと",k:"일, 업무",p:"명사",e:"今日は仕事が多くて疲れました。",ek:"きょうはしごとがおおくてつかれました。",eo:"오늘은 일이 많아서 피곤해요."},
+    {w:"会議",r:"かいぎ",k:"회의",p:"명사",e:"会議は三時からです。",ek:"かいぎはさんじからです。",eo:"회의는 3시부터입니다."},
+    {w:"資料",r:"しりょう",k:"자료",p:"명사",e:"資料をメールで送ります。",ek:"しりょうをメールでおくります。",eo:"자료를 메일로 보낼게요."},
+    {w:"書類",r:"しょるい",k:"서류",p:"명사",e:"この書類にサインをお願いします。",ek:"このしょるいにサインをおねがいします。",eo:"이 서류에 서명 부탁드립니다."},
+    {w:"社長",r:"しゃちょう",k:"사장",p:"명사",e:"社長は外出中です。",ek:"しゃちょうはがいしゅつちゅうです。",eo:"사장님은 외출 중이십니다."},
+    {w:"部長",r:"ぶちょう",k:"부장",p:"명사",e:"部長に確認してみます。",ek:"ぶちょうにかくにんしてみます。",eo:"부장님께 확인해 볼게요."},
+    {w:"同僚",r:"どうりょう",k:"동료",p:"명사",e:"同僚と昼ご飯を食べました。",ek:"どうりょうとひるごはんをたべました。",eo:"동료와 점심을 먹었어요."},
+    {w:"会社員",r:"かいしゃいん",k:"회사원",p:"명사",e:"私は会社員です。",ek:"わたしはかいしゃいんです。",eo:"저는 회사원입니다."},
+    {w:"アルバイト",r:"アルバイト",k:"아르바이트",p:"명사",e:"週末はアルバイトをしています。",ek:"しゅうまつはアルバイトをしています。",eo:"주말에는 아르바이트를 해요."},
+    {w:"残業",r:"ざんぎょう",k:"야근",p:"명사",e:"今日は残業になりそうです。",ek:"きょうはざんぎょうになりそうです。",eo:"오늘은 야근할 것 같아요."},
+    {w:"出張",r:"しゅっちょう",k:"출장",p:"명사",e:"来週から大阪へ出張します。",ek:"らいしゅうからおおさかへしゅっちょうします。",eo:"다음 주부터 오사카로 출장 갑니다."},
+    {w:"メール",r:"メール",k:"메일",p:"명사",e:"メールを確認してください。",ek:"メールをかくにんしてください。",eo:"메일 확인해 주세요."},
+    {w:"パソコン",r:"パソコン",k:"컴퓨터",p:"명사",e:"パソコンの調子が悪いです。",ek:"パソコンのちょうしがわるいです。",eo:"컴퓨터 상태가 안 좋아요."},
+    {w:"コピー",r:"コピー",k:"복사",p:"명사",e:"コピーを五枚お願いします。",ek:"コピーをごまいおねがいします。",eo:"복사 다섯 장 부탁합니다."},
+    {w:"働く",r:"はたらく",k:"일하다",p:"동사",e:"姉は病院で働いています。",ek:"あねはびょういんではたらいています。",eo:"누나는 병원에서 일해요."},
+    {w:"休む",r:"やすむ",k:"쉬다, 결근하다",p:"동사",e:"体調が悪いので、今日は休みます。",ek:"たいちょうがわるいので、きょうはやすみます。",eo:"몸이 안 좋아서 오늘은 쉬겠습니다."},
+    {w:"始める",r:"はじめる",k:"시작하다",p:"동사",e:"そろそろ始めましょう。",ek:"そろそろはじめましょう。",eo:"슬슬 시작합시다."},
+    {w:"終わる",r:"おわる",k:"끝나다",p:"동사",e:"仕事は六時に終わります。",ek:"しごとはろくじにおわります。",eo:"일은 6시에 끝납니다."},
+    {w:"手伝う",r:"てつだう",k:"돕다",p:"동사",e:"よかったら手伝いましょうか。",ek:"よかったらてつだいましょうか。",eo:"괜찮으시면 도와드릴까요?"},
+    {w:"確認",r:"かくにん",k:"확인",p:"명사",e:"念のため確認します。",ek:"ねんのためかくにんします。",eo:"혹시 모르니 확인하겠습니다."},
+    {w:"用事",r:"ようじ",k:"볼일",p:"명사",e:"今日は用事があります。",ek:"きょうはようじがあります。",eo:"오늘은 볼일이 있어요."},
+    {w:"予定",r:"よてい",k:"예정, 일정",p:"명사",e:"明日の予定を教えてください。",ek:"あしたのよていをおしえてください。",eo:"내일 일정을 알려주세요."},
+    {w:"連絡",r:"れんらく",k:"연락",p:"명사",e:"決まったら連絡します。",ek:"きまったられんらくします。",eo:"정해지면 연락드릴게요."},
+    {w:"準備",r:"じゅんび",k:"준비",p:"명사",e:"準備はもうできました。",ek:"じゅんびはもうできました。",eo:"준비는 다 됐습니다."},
+    {w:"忙しい",r:"いそがしい",k:"바쁘다",p:"い형용사",e:"今週はちょっと忙しいです。",ek:"こんしゅうはちょっといそがしいです。",eo:"이번 주는 좀 바빠요."}
+  ]
+},
+{
+  t:"취미 · 여가",
+  items:[
+    {cover:true, no:"주제 15", t:"취미 · 여가",
+     lead:"무엇을 좋아하는지 말할 수 있게 하는 묶음.",
+     peek:["趣味","映画","音楽","楽しい"]},
+    {w:"趣味",r:"しゅみ",k:"취미",p:"명사",e:"趣味は何ですか。",ek:"しゅみはなんですか。",eo:"취미가 뭐예요?"},
+    {w:"映画",r:"えいが",k:"영화",p:"명사",e:"今日は一人で映画を見に行きます。",ek:"きょうはひとりでえいがをみにいきます。",eo:"오늘은 혼자 영화 보러 갑니다."},
+    {w:"音楽",r:"おんがく",k:"음악",p:"명사",e:"音楽を聞きながら歩きます。",ek:"おんがくをききながらあるきます。",eo:"음악을 들으면서 걷습니다."},
+    {w:"歌",r:"うた",k:"노래",p:"명사",e:"好きな歌を歌いました。",ek:"すきなうたをうたいました。",eo:"좋아하는 노래를 불렀어요."},
+    {w:"歌う",r:"うたう",k:"노래하다",p:"동사",e:"みんなで歌いましょう。",ek:"みんなでうたいましょう。",eo:"다 같이 노래해요."},
+    {w:"踊る",r:"おどる",k:"춤추다",p:"동사",e:"祭りでみんな踊っていました。",ek:"まつりでみんなおどっていました。",eo:"축제에서 다들 춤추고 있었어요."},
+    {w:"絵",r:"え",k:"그림",p:"명사",e:"この絵が気に入りました。",ek:"このえがきにいりました。",eo:"이 그림이 마음에 들어요."},
+    {w:"写真を撮る",r:"しゃしんをとる",k:"사진을 찍다",p:"표현",e:"ここで写真を撮ってもいいですか。",ek:"ここでしゃしんをとってもいいですか。",eo:"여기서 사진 찍어도 되나요?"},
+    {w:"スポーツ",r:"スポーツ",k:"스포츠",p:"명사",e:"スポーツは見るほうが好きです。",ek:"スポーツはみるほうがすきです。",eo:"스포츠는 보는 쪽을 좋아해요."},
+    {w:"泳ぐ",r:"およぐ",k:"수영하다",p:"동사",e:"夏はよく泳ぎます。",ek:"なつはよくおよぎます。",eo:"여름엔 자주 수영해요."},
+    {w:"遊ぶ",r:"あそぶ",k:"놀다",p:"동사",e:"今度うちに遊びに来てください。",ek:"こんどうちにあそびにきてください。",eo:"다음에 저희 집에 놀러 오세요."},
+    {w:"ゲーム",r:"ゲーム",k:"게임",p:"명사",e:"夜、少しゲームをします。",ek:"よる、すこしゲームをします。",eo:"밤에 게임을 조금 해요."},
+    {w:"旅行に行く",r:"りょこうにいく",k:"여행 가다",p:"표현",e:"来月、旅行に行く予定です。",ek:"らいげつ、りょこうにいくよていです。",eo:"다음 달에 여행 갈 예정이에요."},
+    {w:"祭り",r:"まつり",k:"축제",p:"명사",e:"夏祭りに行きませんか。",ek:"なつまつりにいきませんか。",eo:"여름 축제에 가지 않을래요?"},
+    {w:"チケット",r:"チケット",k:"티켓",p:"명사",e:"チケットはもう買いました。",ek:"チケットはもうかいました。",eo:"티켓은 이미 샀어요."},
+    {w:"パーティー",r:"パーティー",k:"파티",p:"명사",e:"金曜日にパーティーがあります。",ek:"きんようびにパーティーがあります。",eo:"금요일에 파티가 있어요."},
+    {w:"飲み会",r:"のみかい",k:"회식, 술자리",p:"명사",e:"昨日の飲み会は楽しかったです。",ek:"きのうののみかいはたのしかったです。",eo:"어제 회식 즐거웠어요."},
+    {w:"休日",r:"きゅうじつ",k:"휴일",p:"명사",e:"休日はゆっくり過ごします。",ek:"きゅうじつはゆっくりすごします。",eo:"휴일에는 느긋하게 보냅니다."},
+    {w:"楽しい",r:"たのしい",k:"즐겁다",p:"い형용사",e:"昨日の飲み会は楽しかったです。",ek:"きのうののみかいはたのしかったです。",eo:"어제 회식 즐거웠어요."},
+    {w:"面白い",r:"おもしろい",k:"재미있다",p:"い형용사",e:"その映画は面白かったです。",ek:"そのえいがはおもしろかったです。",eo:"그 영화 재미있었어요."},
+    {w:"つまらない",r:"つまらない",k:"재미없다, 지루하다",p:"い형용사",e:"正直、少しつまらなかったです。",ek:"しょうじき、すこしつまらなかったです。",eo:"솔직히 좀 지루했어요."},
+    {w:"好き",r:"すき",k:"좋아함",p:"な형용사",e:"甘いものが好きです。",ek:"あまいものがすきです。",eo:"단 걸 좋아해요."},
+    {w:"嫌い",r:"きらい",k:"싫어함",p:"な형용사",e:"辛いものは嫌いです。",ek:"からいものはきらいです。",eo:"매운 건 싫어해요."},
+    {w:"楽しむ",r:"たのしむ",k:"즐기다",p:"동사",e:"ゆっくり楽しんでください。",ek:"ゆっくりたのしんでください。",eo:"천천히 즐기세요."},
+    {w:"興味",r:"きょうみ",k:"흥미, 관심",p:"명사",e:"日本の文化に興味があります。",ek:"にほんのぶんかにきょうみがあります。",eo:"일본 문화에 관심이 있어요."}
+  ]
+},
+{
+  t:"자연 · 날씨 · 동식물",
+  items:[
+    {cover:true, no:"주제 16", t:"자연 · 날씨 · 동식물",
+     lead:"날씨 이야기는 어디서든 첫 인사 다음에 온다.",
+     peek:["天気","雨","季節","晴れる"]},
+    {w:"天気",r:"てんき",k:"날씨",p:"명사",e:"明日の天気はどうですか。",ek:"あしたのてんきはどうですか。",eo:"내일 날씨는 어때요?"},
+    {w:"雨",r:"あめ",k:"비",p:"명사",e:"午後から雨が降るそうです。",ek:"ごごからあめがふるそうです。",eo:"오후부터 비가 온대요."},
+    {w:"雪",r:"ゆき",k:"눈",p:"명사",e:"朝から雪が降っています。",ek:"あさからゆきがふっています。",eo:"아침부터 눈이 오고 있어요."},
+    {w:"風",r:"かぜ",k:"바람",p:"명사",e:"今日は風が強いですね。",ek:"きょうはかぜがつよいですね。",eo:"오늘은 바람이 세네요."},
+    {w:"雲",r:"くも",k:"구름",p:"명사",e:"雲が出てきました。",ek:"くもがでてきました。",eo:"구름이 끼기 시작했어요."},
+    {w:"空",r:"そら",k:"하늘",p:"명사",e:"空がきれいですね。",ek:"そらがきれいですね。",eo:"하늘이 예쁘네요."},
+    {w:"太陽",r:"たいよう",k:"태양",p:"명사",e:"太陽が出てきました。",ek:"たいようがでてきました。",eo:"해가 나왔어요."},
+    {w:"星",r:"ほし",k:"별",p:"명사",e:"今夜は星がよく見えます。",ek:"こんやはほしがよくみえます。",eo:"오늘 밤은 별이 잘 보여요."},
+    {w:"春",r:"はる",k:"봄",p:"명사",e:"春は花がきれいです。",ek:"はるははながきれいです。",eo:"봄은 꽃이 예뻐요."},
+    {w:"夏",r:"なつ",k:"여름",p:"명사",e:"今年の夏は暑いですね。",ek:"ことしのなつはあついですね。",eo:"올여름은 덥네요."},
+    {w:"秋",r:"あき",k:"가을",p:"명사",e:"秋は過ごしやすいです。",ek:"あきはすごしやすいです。",eo:"가을은 지내기 좋아요."},
+    {w:"冬",r:"ふゆ",k:"겨울",p:"명사",e:"冬は雪が多い地域です。",ek:"ふゆはゆきがおおいちいきです。",eo:"겨울에 눈이 많은 지역이에요."},
+    {w:"季節",r:"きせつ",k:"계절",p:"명사",e:"どの季節が好きですか。",ek:"どのきせつがすきですか。",eo:"어느 계절을 좋아하세요?"},
+    {w:"気温",r:"きおん",k:"기온",p:"명사",e:"今日は気温が下がります。",ek:"きょうはきおんがさがります。",eo:"오늘은 기온이 내려갑니다."},
+    {w:"花",r:"はな",k:"꽃",p:"명사",e:"庭に花を植えました。",ek:"にわにはなをうえました。",eo:"마당에 꽃을 심었어요."},
+    {w:"木",r:"き",k:"나무",p:"명사",e:"大きな木の下で休みました。",ek:"おおきなきのしたでやすみました。",eo:"큰 나무 아래서 쉬었어요."},
+    {w:"草",r:"くさ",k:"풀",p:"명사",e:"庭の草を取りました。",ek:"にわのくさをとりました。",eo:"마당의 풀을 뽑았어요."},
+    {w:"葉",r:"は",k:"잎",p:"명사",e:"葉が赤くなりました。",ek:"はがあかくなりました。",eo:"잎이 붉어졌어요."},
+    {w:"動物",r:"どうぶつ",k:"동물",p:"명사",e:"動物園で写真を撮りました。",ek:"どうぶつえんでしゃしんをとりました。",eo:"동물원에서 사진을 찍었어요."},
+    {w:"犬",r:"いぬ",k:"개",p:"명사",e:"犬の散歩に行きます。",ek:"いぬのさんぽにいきます。",eo:"개 산책시키러 갑니다."},
+    {w:"猫",r:"ねこ",k:"고양이",p:"명사",e:"猫を一匹飼っています。",ek:"ねこをいっぴきかっています。",eo:"고양이를 한 마리 키웁니다."},
+    {w:"鳥",r:"とり",k:"새",p:"명사",e:"朝、鳥の声で起きました。",ek:"あさ、とりのこえでおきました。",eo:"아침에 새소리에 깼어요."},
+    {w:"虫",r:"むし",k:"벌레",p:"명사",e:"部屋に虫が入りました。",ek:"へやにむしがはいりました。",eo:"방에 벌레가 들어왔어요."},
+    {w:"火",r:"ひ",k:"불",p:"명사",e:"火を弱くしてください。",ek:"ひをよわくしてください。",eo:"불을 약하게 해주세요."},
+    {w:"石",r:"いし",k:"돌",p:"명사",e:"道に石がありました。",ek:"みちにいしがありました。",eo:"길에 돌이 있었어요."},
+    {w:"土",r:"つち",k:"흙",p:"명사",e:"靴に土がつきました。",ek:"くつにつちがつきました。",eo:"신발에 흙이 묻었어요."},
+    {w:"森",r:"もり",k:"숲",p:"명사",e:"森の中を歩きました。",ek:"もりのなかをあるきました。",eo:"숲속을 걸었어요."},
+    {w:"池",r:"いけ",k:"연못",p:"명사",e:"公園に大きな池があります。",ek:"こうえんにおおきないけがあります。",eo:"공원에 큰 연못이 있어요."},
+    {w:"島",r:"しま",k:"섬",p:"명사",e:"船で島に行きました。",ek:"ふねでしまにいきました。",eo:"배로 섬에 갔어요."},
+    {w:"降る",r:"ふる",k:"내리다 (비·눈)",p:"동사",e:"雨が降ってきました。",ek:"あめがふってきました。",eo:"비가 오기 시작했어요."},
+    {w:"晴れる",r:"はれる",k:"맑다, 개다",p:"동사",e:"午後には晴れるそうです。",ek:"ごごにははれるそうです。",eo:"오후에는 갠대요."},
+    {w:"曇る",r:"くもる",k:"흐리다",p:"동사",e:"今日は一日曇っています。",ek:"きょうはいちにちくもっています。",eo:"오늘은 하루 종일 흐려요."},
+    {w:"暑い",r:"あつい",k:"덥다",p:"い형용사",e:"今日は暑いので、水をたくさん飲んでください。",ek:"きょうはあついので、みずをたくさんのんでください。",eo:"오늘은 더우니까 물 많이 드세요."},
+    {w:"寒い",r:"さむい",k:"춥다",p:"い형용사",e:"外は寒いから、上着を持っていってね。",ek:"そとはさむいから、うわぎをもっていってね。",eo:"밖이 추우니까 겉옷 챙겨 가."},
+    {w:"暖かい",r:"あたたかい",k:"따뜻하다",p:"い형용사",e:"今日は暖かくていいですね。",ek:"きょうはあたたかくていいですね。",eo:"오늘은 따뜻해서 좋네요."},
+    {w:"涼しい",r:"すずしい",k:"시원하다",p:"い형용사",e:"夜は涼しくなりました。",ek:"よるはすずしくなりました。",eo:"밤에는 시원해졌어요."},
+    {w:"強い",r:"つよい",k:"강하다, 세다",p:"い형용사",e:"今日は日差しが強いです。",ek:"きょうはひざしがつよいです。",eo:"오늘은 햇살이 강해요."},
+    {w:"弱い",r:"よわい",k:"약하다",p:"い형용사",e:"風が弱くなりました。",ek:"かぜがよわくなりました。",eo:"바람이 약해졌어요."},
+    {w:"自然",r:"しぜん",k:"자연",p:"명사",e:"この町は自然が多いです。",ek:"このまちはしぜんがおおいです。",eo:"이 동네는 자연이 많아요."},
+    {w:"景色",r:"けしき",k:"경치",p:"명사",e:"ここは景色がきれいです。",ek:"ここはけしきがきれいです。",eo:"여기는 경치가 예뻐요."}
+  ]
+},
+{
+  t:"자주 쓰는 외래어",
+  items:[
+    {cover:true, no:"주제 17", t:"자주 쓰는 외래어",
+     lead:"가타카나로 쓰지만 뜻은 익숙한 말들. 발음이 원래와 꽤 다르다.",
+     peek:["スマホ","パソコン","レジ","チェックイン"]},
+    {w:"テレビ番組",r:"テレビばんぐみ",k:"TV 프로그램",p:"명사",e:"好きなテレビ番組があります。",ek:"すきなテレビばんぐみがあります。",eo:"좋아하는 TV 프로그램이 있어요."},
+    {w:"ラジオ",r:"ラジオ",k:"라디오",p:"명사",e:"車でラジオを聞きます。",ek:"くるまでラジオをききます。",eo:"차에서 라디오를 들어요."},
+    {w:"カメラ",r:"カメラ",k:"카메라",p:"명사",e:"カメラを持ってきました。",ek:"カメラをもってきました。",eo:"카메라를 가져왔어요."},
+    {w:"スマホ",r:"スマホ",k:"스마트폰",p:"명사",e:"スマホの充電が切れそうです。",ek:"スマホのじゅうでんがきれそうです。",eo:"휴대폰 배터리가 다 돼가요."},
+    {w:"インターネット",r:"インターネット",k:"인터넷",p:"명사",e:"インターネットで調べました。",ek:"インターネットでしらべました。",eo:"인터넷으로 찾아봤어요."},
+    {w:"エレベーターホール",r:"エレベーターホール",k:"엘리베이터 홀",p:"명사",e:"エレベーターホールでお待ちください。",ek:"エレベーターホールでおまちください。",eo:"엘리베이터 홀에서 기다려 주세요."},
+    {w:"ボタン",r:"ボタン",k:"버튼",p:"명사",e:"このボタンを押してください。",ek:"このボタンをおしてください。",eo:"이 버튼을 눌러주세요."},
+    {w:"シャワー",r:"シャワー",k:"샤워",p:"명사",e:"先にシャワーを浴びます。",ek:"さきにシャワーをあびます。",eo:"먼저 샤워할게요."},
+    {w:"スーツ",r:"スーツ",k:"정장",p:"명사",e:"面接なのでスーツを着ます。",ek:"めんせつなのでスーツをきます。",eo:"면접이라 정장을 입어요."},
+    {w:"ポケット",r:"ポケット",k:"주머니",p:"명사",e:"鍵はポケットに入れました。",ek:"かぎはポケットにいれました。",eo:"열쇠는 주머니에 넣었어요."},
+    {w:"カレンダー",r:"カレンダー",k:"달력",p:"명사",e:"カレンダーで確認します。",ek:"カレンダーでかくにんします。",eo:"달력으로 확인할게요."},
+    {w:"レジ",r:"レジ",k:"계산대",p:"명사",e:"レジは奥にあります。",ek:"レジはおくにあります。",eo:"계산대는 안쪽에 있습니다."},
+    {w:"エスカレーター",r:"エスカレーター",k:"에스컬레이터",p:"명사",e:"エスカレーターで二階へどうぞ。",ek:"エスカレーターでにかいへどうぞ。",eo:"에스컬레이터로 2층으로 가세요."},
+    {w:"クレジットカード",r:"クレジットカード",k:"신용카드",p:"명사",e:"クレジットカードは使えますか。",ek:"クレジットカードはつかえますか。",eo:"신용카드 되나요?"},
+    {w:"サイン",r:"サイン",k:"서명, 사인",p:"명사",e:"ここにサインをお願いします。",ek:"ここにサインをおねがいします。",eo:"여기에 서명 부탁드립니다."},
+    {w:"スケジュール",r:"スケジュール",k:"일정",p:"명사",e:"スケジュールを送りますね。",ek:"スケジュールをおくりますね。",eo:"일정을 보내드릴게요."},
+    {w:"チェックイン",r:"チェックイン",k:"체크인",p:"명사",e:"チェックインは三時からです。",ek:"チェックインはさんじからです。",eo:"체크인은 3시부터입니다."},
+    {w:"フロント",r:"フロント",k:"프런트",p:"명사",e:"フロントに聞いてみます。",ek:"フロントにきいてみます。",eo:"프런트에 물어볼게요."},
+    {w:"ページ",r:"ページ",k:"페이지",p:"명사",e:"次のページを見てください。",ek:"つぎのページをみてください。",eo:"다음 페이지를 봐주세요."},
+    {w:"ニュース",r:"ニュース",k:"뉴스",p:"명사",e:"朝のニュースで見ました。",ek:"あさのニュースでみました。",eo:"아침 뉴스에서 봤어요."},
+    {w:"ドラマ",r:"ドラマ",k:"드라마",p:"명사",e:"今このドラマを見ています。",ek:"いまこのドラマをみています。",eo:"지금 이 드라마 보고 있어요."},
+    {w:"レポート",r:"レポート",k:"리포트, 보고서",p:"명사",e:"レポートを提出しました。",ek:"レポートをていしゅつしました。",eo:"보고서를 제출했어요."},
+    {w:"アドレス",r:"アドレス",k:"주소 (메일)",p:"명사",e:"メールアドレスを教えてください。",ek:"メールアドレスをおしえてください。",eo:"메일 주소를 알려주세요."},
+    {w:"パスワード",r:"パスワード",k:"비밀번호",p:"명사",e:"パスワードを忘れてしまいました。",ek:"パスワードをわすれてしまいました。",eo:"비밀번호를 잊어버렸어요."},
+    {w:"タオルケット",r:"タオルケット",k:"타월천 이불",p:"명사",e:"夏はタオルケットで寝ます。",ek:"なつはタオルケットでねます。",eo:"여름엔 얇은 이불로 잡니다."},
+    {w:"ホーム",r:"ホーム",k:"승강장",p:"명사",e:"三番ホームで待ちます。",ek:"さんばんホームでまちます。",eo:"3번 승강장에서 기다릴게요."},
+    {w:"チーズ",r:"チーズ",k:"치즈",p:"명사",e:"チーズを少し入れます。",ek:"チーズをすこしいれます。",eo:"치즈를 조금 넣어요."},
+    {w:"バター",r:"バター",k:"버터",p:"명사",e:"パンにバターを塗ります。",ek:"パンにバターをぬります。",eo:"빵에 버터를 바릅니다."},
+    {w:"サラダ",r:"サラダ",k:"샐러드",p:"명사",e:"サラダも一つお願いします。",ek:"サラダもひとつおねがいします。",eo:"샐러드도 하나 주세요."},
+    {w:"スープ",r:"スープ",k:"수프",p:"명사",e:"温かいスープが飲みたいです。",ek:"あたたかいスープがのみたいです。",eo:"따뜻한 수프가 먹고 싶어요."},
+    {w:"ワイン",r:"ワイン",k:"와인",p:"명사",e:"赤ワインをお願いします。",ek:"あかワインをおねがいします。",eo:"레드 와인 주세요."},
+    {w:"レモン",r:"レモン",k:"레몬",p:"명사",e:"レモンを入れてください。",ek:"レモンをいれてください。",eo:"레몬을 넣어주세요."},
+    {w:"カレー",r:"カレー",k:"카레",p:"명사",e:"今夜はカレーにします。",ek:"こんやはカレーにします。",eo:"오늘 밤은 카레로 할게요."},
+    {w:"ハンバーガー",r:"ハンバーガー",k:"햄버거",p:"명사",e:"ハンバーガーを二つください。",ek:"ハンバーガーをふたつください。",eo:"햄버거 두 개 주세요."},
+    {w:"サンドイッチ",r:"サンドイッチ",k:"샌드위치",p:"명사",e:"サンドイッチを二つ買いました。",ek:"サンドイッチをふたつかいました。",eo:"샌드위치를 두 개 샀습니다."},
+    {w:"クラブ",r:"クラブ",k:"동아리, 클럽",p:"명사",e:"学生の時、テニスクラブにいました。",ek:"がくせいのとき、テニスクラブにいました。",eo:"학생 때 테니스 동아리에 있었어요."},
+    {w:"テニス",r:"テニス",k:"테니스",p:"명사",e:"週末にテニスをします。",ek:"しゅうまつにテニスをします。",eo:"주말에 테니스를 칩니다."},
+    {w:"サッカー",r:"サッカー",k:"축구",p:"명사",e:"サッカーの試合を見ました。",ek:"サッカーのしあいをみました。",eo:"축구 경기를 봤어요."},
+    {w:"ピアノ",r:"ピアノ",k:"피아노",p:"명사",e:"娘はピアノを習っています。",ek:"むすめはピアノをならっています。",eo:"딸은 피아노를 배우고 있어요."},
+    {w:"ギター",r:"ギター",k:"기타",p:"명사",e:"ギターを少し弾けます。",ek:"ギターをすこしひけます。",eo:"기타를 조금 칠 줄 알아요."}
+  ]
+},
+{
+  t:"동사 ① 기본 동작",
+  items:[
+    {cover:true, no:"주제 18", t:"동사 ① 기본 동작",
+     lead:"매일 몸으로 하는 일. 다른 주제에 이미 나온 동사는 뺐다.",
+     peek:["する","開ける","押す","並ぶ"]},
+    {w:"する",r:"する",k:"하다",p:"동사",e:"明日は何をする予定ですか。",ek:"あしたはなにをするよていですか。",eo:"내일은 뭐 할 예정이세요?"},
+    {w:"行く",r:"いく",k:"가다",p:"동사",e:"週末に温泉に行きませんか。",ek:"しゅうまつにおんせんにいきませんか。",eo:"주말에 온천 가지 않을래요?"},
+    {w:"来る",r:"くる",k:"오다",p:"동사",e:"何時ごろ来られますか。",ek:"なんじごろこられますか。",eo:"몇 시쯤 오실 수 있어요?"},
+    {w:"帰る",r:"かえる",k:"돌아가다, 귀가하다",p:"동사",e:"今日は早く帰ります。",ek:"きょうははやくかえります。",eo:"오늘은 일찍 들어갈게요."},
+    {w:"見る",r:"みる",k:"보다",p:"동사",e:"ちょっとこれを見てもらえますか。",ek:"ちょっとこれをみてもらえますか。",eo:"이것 좀 봐주실래요?"},
+    {w:"聞く",r:"きく",k:"듣다, 묻다",p:"동사",e:"分からなかったら、いつでも聞いてください。",ek:"わからなかったら、いつでもきいてください。",eo:"모르면 언제든 물어보세요."},
+    {w:"話す",r:"はなす",k:"이야기하다",p:"동사",e:"後でゆっくり話しましょう。",ek:"あとでゆっくりはなしましょう。",eo:"나중에 천천히 얘기해요."},
+    {w:"言う",r:"いう",k:"말하다",p:"동사",e:"もう一度言ってもらえますか。",ek:"もういちどいってもらえますか。",eo:"한 번 더 말씀해 주실래요?"},
+    {w:"答える",r:"こたえる",k:"대답하다",p:"동사",e:"すぐに答えられませんでした。",ek:"すぐにこたえられませんでした。",eo:"바로 대답하지 못했어요."},
+    {w:"待つ",r:"まつ",k:"기다리다",p:"동사",e:"ここで少し待っていてください。",ek:"ここですこしまっていてください。",eo:"여기서 잠깐 기다려 주세요."},
+    {w:"使う",r:"つかう",k:"쓰다, 사용하다",p:"동사",e:"このコピー機、使ってもいいですか。",ek:"このコピーき、つかってもいいですか。",eo:"이 복사기 써도 되나요?"},
+    {w:"会う",r:"あう",k:"만나다",p:"동사",e:"駅で友達に会いました。",ek:"えきでともだちにあいました。",eo:"역에서 친구를 만났어요."},
+    {w:"呼ぶ",r:"よぶ",k:"부르다",p:"동사",e:"タクシーを呼びましょうか。",ek:"タクシーをよびましょうか。",eo:"택시를 부를까요?"},
+    {w:"立つ",r:"たつ",k:"서다",p:"동사",e:"ここに立って待ってください。",ek:"ここにたってまってください。",eo:"여기 서서 기다려 주세요."},
+    {w:"座る",r:"すわる",k:"앉다",p:"동사",e:"こちらにお座りください。",ek:"こちらにおすわりください。",eo:"이쪽에 앉으세요."},
+    {w:"起きる",r:"おきる",k:"일어나다",p:"동사",e:"毎朝七時に起きます。",ek:"まいあさしちじにおきます。",eo:"매일 아침 7시에 일어납니다."},
+    {w:"寝る",r:"ねる",k:"자다",p:"동사",e:"昨日は早く寝ました。",ek:"きのうははやくねました。",eo:"어제는 일찍 잤어요."},
+    {w:"入る",r:"はいる",k:"들어가다",p:"동사",e:"どうぞ中にお入りください。",ek:"どうぞなかにおはいりください。",eo:"안으로 들어오세요."},
+    {w:"出る",r:"でる",k:"나가다, 나오다",p:"동사",e:"七時に家を出ます。",ek:"しちじにいえをでます。",eo:"7시에 집을 나섭니다."},
+    {w:"開ける",r:"あける",k:"열다",p:"동사",e:"窓を開けてもいいですか。",ek:"まどをあけてもいいですか。",eo:"창문 열어도 될까요?"},
+    {w:"閉める",r:"しめる",k:"닫다",p:"동사",e:"ドアを閉めてください。",ek:"ドアをしめてください。",eo:"문 좀 닫아주세요."},
+    {w:"開く",r:"あく",k:"열리다",p:"동사",e:"店は十時に開きます。",ek:"みせはじゅうじにあきます。",eo:"가게는 10시에 엽니다."},
+    {w:"閉まる",r:"しまる",k:"닫히다",p:"동사",e:"銀行は三時に閉まります。",ek:"ぎんこうはさんじにしまります。",eo:"은행은 3시에 문을 닫습니다."},
+    {w:"つける",r:"つける",k:"켜다",p:"동사",e:"電気をつけてください。",ek:"でんきをつけてください。",eo:"불 좀 켜주세요."},
+    {w:"消す",r:"けす",k:"끄다, 지우다",p:"동사",e:"出る時は電気を消してください。",ek:"でるときはでんきをけしてください。",eo:"나갈 때 불을 꺼주세요."},
+    {w:"押す",r:"おす",k:"누르다, 밀다",p:"동사",e:"このボタンを押してください。",ek:"このボタンをおしてください。",eo:"이 버튼을 눌러주세요."},
+    {w:"引く",r:"ひく",k:"당기다",p:"동사",e:"ドアは引いて開けます。",ek:"ドアはひいてあけます。",eo:"문은 당겨서 엽니다."},
+    {w:"持つ",r:"もつ",k:"들다, 가지다",p:"동사",e:"荷物を持ちましょうか。",ek:"にもつをもちましょうか。",eo:"짐 들어드릴까요?"},
+    {w:"置く",r:"おく",k:"놓다, 두다",p:"동사",e:"ここに置いてもいいですか。",ek:"ここにおいてもいいですか。",eo:"여기 놔도 되나요?"},
+    {w:"取る",r:"とる",k:"잡다, 집다, 따다",p:"동사",e:"塩を取ってもらえますか。",ek:"しおをとってもらえますか。",eo:"소금 좀 건네주실래요?"},
+    {w:"出す",r:"だす",k:"내다, 꺼내다, 부치다",p:"동사",e:"手紙を出しに行きます。",ek:"てがみをだしにいきます。",eo:"편지 부치러 갑니다."},
+    {w:"入れる",r:"いれる",k:"넣다",p:"동사",e:"砂糖は入れないでください。",ek:"さとうはいれないでください。",eo:"설탕은 넣지 말아주세요."},
+    {w:"洗う",r:"あらう",k:"씻다, 빨다",p:"동사",e:"食べる前に手を洗ってください。",ek:"たべるまえにてをあらってください。",eo:"먹기 전에 손을 씻으세요."},
+    {w:"拭く",r:"ふく",k:"닦다",p:"동사",e:"テーブルを拭いておきますね。",ek:"テーブルをふいておきますね。",eo:"테이블 닦아둘게요."},
+    {w:"並ぶ",r:"ならぶ",k:"줄 서다",p:"동사",e:"三十分並びました。",ek:"さんじゅっぷんならびました。",eo:"30분 줄 섰어요."},
+    {w:"脱ぐ",r:"ぬぐ",k:"벗다",p:"동사",e:"ここで靴を脱いでください。",ek:"ここでくつをぬいでください。",eo:"여기서 신발을 벗어주세요."},
+    {w:"かぶる",r:"かぶる",k:"(모자를) 쓰다",p:"동사",e:"帽子をかぶって出かけます。",ek:"ぼうしをかぶってでかけます。",eo:"모자를 쓰고 나갑니다."},
+    {w:"かける",r:"かける",k:"걸다, (안경을) 쓰다",p:"동사",e:"母に電話をかけました。",ek:"ははにでんわをかけました。",eo:"어머니께 전화를 걸었습니다."},
+    {w:"吸う",r:"すう",k:"피우다, 들이마시다",p:"동사",e:"ここでタバコを吸ってもいいですか。",ek:"ここでタバコをすってもいいですか。",eo:"여기서 담배 피워도 되나요?"},
+    {w:"弾く",r:"ひく",k:"(악기를) 치다, 켜다",p:"동사",e:"ギターを少し弾けます。",ek:"ギターをすこしひけます。",eo:"기타를 조금 칠 줄 알아요."},
+    {w:"登る",r:"のぼる",k:"오르다",p:"동사",e:"来月、山に登ります。",ek:"らいげつ、やまにのぼります。",eo:"다음 달에 산에 오릅니다."},
+    {w:"飛ぶ",r:"とぶ",k:"날다",p:"동사",e:"鳥が飛んでいきました。",ek:"とりがとんでいきました。",eo:"새가 날아갔어요."},
+    {w:"止まる",r:"とまる",k:"멈추다, 서다",p:"동사",e:"電車が急に止まりました。",ek:"でんしゃがきゅうにとまりました。",eo:"전철이 갑자기 멈췄어요."},
+    {w:"止める",r:"とめる",k:"세우다, 멈추다",p:"동사",e:"ここに車を止めてもいいですか。",ek:"ここにくるまをとめてもいいですか。",eo:"여기 차 세워도 되나요?"},
+    {w:"見せる",r:"みせる",k:"보여주다",p:"동사",e:"メニューを見せてください。",ek:"メニューをみせてください。",eo:"메뉴판 좀 보여주세요."}
+  ]
+},
+{
+  t:"동사 ② 주고받기 · 변화 · 마음",
+  items:[
+    {cover:true, no:"주제 19", t:"동사 ② 주고받기 · 변화 · 마음",
+     lead:"주고받기(あげる·もらう·くれる)는 방향이 핵심이다.",
+     peek:["あげる","もらう","なる","困る"]},
+    {w:"あげる",r:"あげる",k:"주다 (내가 남에게)",p:"동사",e:"友達に本をあげました。",ek:"ともだちにほんをあげました。",eo:"친구에게 책을 줬어요."},
+    {w:"もらう",r:"もらう",k:"받다",p:"동사",e:"父から腕時計をもらいました。",ek:"ちちからうでどけいをもらいました。",eo:"아버지께 손목시계를 받았어요."},
+    {w:"くれる",r:"くれる",k:"주다 (남이 나에게)",p:"동사",e:"友達が手伝ってくれました。",ek:"ともだちがてつだってくれました。",eo:"친구가 도와줬어요."},
+    {w:"貸す",r:"かす",k:"빌려주다",p:"동사",e:"ペンを貸してもらえますか。",ek:"ペンをかしてもらえますか。",eo:"펜 좀 빌려주실래요?"},
+    {w:"借りる",r:"かりる",k:"빌리다",p:"동사",e:"図書館で本を借りました。",ek:"としょかんでほんをかりました。",eo:"도서관에서 책을 빌렸어요."},
+    {w:"送る",r:"おくる",k:"보내다, 바래다주다",p:"동사",e:"資料をメールで送ります。",ek:"しりょうをメールでおくります。",eo:"자료를 메일로 보낼게요."},
+    {w:"届く",r:"とどく",k:"도착하다 (물건)",p:"동사",e:"荷物は明日届きます。",ek:"にもつはあしたとどきます。",eo:"짐은 내일 도착합니다."},
+    {w:"いる",r:"いる",k:"있다 (사람·동물)",p:"동사",e:"事務所に誰かいますか。",ek:"じむしょにだれかいますか。",eo:"사무실에 누구 있나요?"},
+    {w:"ある",r:"ある",k:"있다 (사물)",p:"동사",e:"質問があればどうぞ。",ek:"しつもんがあればどうぞ。",eo:"질문 있으면 하세요."},
+    {w:"なる",r:"なる",k:"되다",p:"동사",e:"娘は今年五歳になります。",ek:"むすめはことしごさいになります。",eo:"딸은 올해 다섯 살이 됩니다."},
+    {w:"変わる",r:"かわる",k:"바뀌다",p:"동사",e:"予定が変わりました。",ek:"よていがかわりました。",eo:"일정이 바뀌었어요."},
+    {w:"変える",r:"かえる",k:"바꾸다",p:"동사",e:"日にちを変えてもいいですか。",ek:"ひにちをかえてもいいですか。",eo:"날짜를 바꿔도 될까요?"},
+    {w:"始まる",r:"はじまる",k:"시작되다",p:"동사",e:"映画はもう始まりました。",ek:"えいがはもうはじまりました。",eo:"영화는 벌써 시작했어요."},
+    {w:"続ける",r:"つづける",k:"계속하다",p:"동사",e:"このまま続けてください。",ek:"このままつづけてください。",eo:"이대로 계속해 주세요."},
+    {w:"続く",r:"つづく",k:"계속되다",p:"동사",e:"暑い日が続いています。",ek:"あついひがつづいています。",eo:"더운 날이 이어지고 있어요."},
+    {w:"決める",r:"きめる",k:"정하다",p:"동사",e:"明日の服はもう決めました。",ek:"あしたのふくはもうきめました。",eo:"내일 입을 옷은 벌써 정했어요."},
+    {w:"直す",r:"なおす",k:"고치다",p:"동사",e:"時計を直してもらいました。",ek:"とけいをなおしてもらいました。",eo:"시계를 고쳐 받았어요."},
+    {w:"壊れる",r:"こわれる",k:"고장 나다, 부서지다",p:"동사",e:"洗濯機が壊れました。",ek:"せんたくきがこわれました。",eo:"세탁기가 고장 났어요."},
+    {w:"落ちる",r:"おちる",k:"떨어지다",p:"동사",e:"鍵が下に落ちましたよ。",ek:"かぎがしたにおちましたよ。",eo:"열쇠가 밑에 떨어졌어요."},
+    {w:"落とす",r:"おとす",k:"떨어뜨리다",p:"동사",e:"財布を落としてしまいました。",ek:"さいふをおとしてしまいました。",eo:"지갑을 떨어뜨렸어요."},
+    {w:"無くす",r:"なくす",k:"잃어버리다",p:"동사",e:"部屋の鍵を無くしました。",ek:"へやのかぎをなくしました。",eo:"방 열쇠를 잃어버렸어요."},
+    {w:"見つける",r:"みつける",k:"찾아내다",p:"동사",e:"いい店を見つけました。",ek:"いいみせをみつけました。",eo:"좋은 가게를 찾았어요."},
+    {w:"見える",r:"みえる",k:"보이다",p:"동사",e:"ここから海が見えます。",ek:"ここからうみがみえます。",eo:"여기서 바다가 보여요."},
+    {w:"聞こえる",r:"きこえる",k:"들리다",p:"동사",e:"声がよく聞こえません。",ek:"こえがよくきこえません。",eo:"목소리가 잘 안 들려요."},
+    {w:"できる",r:"できる",k:"할 수 있다, 다 되다",p:"동사",e:"準備はもうできました。",ek:"じゅんびはもうできました。",eo:"준비는 이미 다 됐어요."},
+    {w:"頑張る",r:"がんばる",k:"힘내다, 열심히 하다",p:"동사",e:"明日も頑張りましょう。",ek:"あしたもがんばりましょう。",eo:"내일도 힘냅시다."},
+    {w:"気をつける",r:"きをつける",k:"조심하다",p:"표현",e:"足元に気をつけてください。",ek:"あしもとにきをつけてください。",eo:"발밑을 조심하세요."},
+    {w:"困る",r:"こまる",k:"곤란하다",p:"동사",e:"それは少し困ります。",ek:"それはすこしこまります。",eo:"그건 좀 곤란해요."},
+    {w:"笑う",r:"わらう",k:"웃다",p:"동사",e:"みんなで笑いました。",ek:"みんなでわらいました。",eo:"다 같이 웃었어요."},
+    {w:"泣く",r:"なく",k:"울다",p:"동사",e:"赤ちゃんが泣いています。",ek:"あかちゃんがないています。",eo:"아기가 울고 있어요."},
+    {w:"怒る",r:"おこる",k:"화내다",p:"동사",e:"怒らないで聞いてください。",ek:"おこらないできいてください。",eo:"화내지 말고 들어주세요."},
+    {w:"驚く",r:"おどろく",k:"놀라다",p:"동사",e:"急に呼ばれて驚きました。",ek:"きゅうによばれておどろきました。",eo:"갑자기 불려서 놀랐어요."},
+    {w:"喜ぶ",r:"よろこぶ",k:"기뻐하다",p:"동사",e:"母が喜んでくれました。",ek:"ははがよろこんでくれました。",eo:"어머니가 기뻐하셨어요."},
+    {w:"思う",r:"おもう",k:"생각하다",p:"동사",e:"彼はたぶん来ないと思います。",ek:"かれはたぶんこないとおもいます。",eo:"그는 아마 안 올 것 같아요."},
+    {w:"知らせる",r:"しらせる",k:"알리다",p:"동사",e:"決まったらすぐ知らせます。",ek:"きまったらすぐしらせます。",eo:"정해지면 바로 알려드릴게요."},
+    {w:"生まれる",r:"うまれる",k:"태어나다",p:"동사",e:"娘は東京で生まれました。",ek:"むすめはとうきょうでうまれました。",eo:"딸은 도쿄에서 태어났어요."},
+    {w:"死ぬ",r:"しぬ",k:"죽다",p:"동사",e:"飼っていた犬が死にました。",ek:"かっていたいぬがしにました。",eo:"키우던 개가 죽었어요."},
+    {w:"動く",r:"うごく",k:"움직이다, 작동하다",p:"동사",e:"エレベーターが動きません。",ek:"エレベーターがうごきません。",eo:"엘리베이터가 안 움직여요."},
+    {w:"触る",r:"さわる",k:"만지다",p:"동사",e:"作品に触らないでください。",ek:"さくひんにさわらないでください。",eo:"작품에 손대지 마세요."},
+    {w:"迷う",r:"まよう",k:"헤매다, 망설이다",p:"동사",e:"道に迷ってしまいました。",ek:"みちにまよってしまいました。",eo:"길을 잃었어요."},
+    {w:"助ける",r:"たすける",k:"돕다, 구하다",p:"동사",e:"助けていただいて感謝しています。",ek:"たすけていただいてかんしゃしています。",eo:"도와주셔서 감사합니다."},
+    {w:"飼う",r:"かう",k:"기르다 (동물)",p:"동사",e:"犬を二匹飼っています。",ek:"いぬをにひきかっています。",eo:"개를 두 마리 키웁니다."},
+    {w:"引っ越す",r:"ひっこす",k:"이사하다",p:"동사",e:"来月、駅の近くに引っ越します。",ek:"らいげつ、えきのちかくにひっこします。",eo:"다음 달에 역 근처로 이사합니다."},
+    {w:"入れ替える",r:"いれかえる",k:"바꿔 넣다, 교체하다",p:"동사",e:"電池を入れ替えました。",ek:"でんちをいれかえました。",eo:"건전지를 갈았어요."},
+    {w:"確かめる",r:"たしかめる",k:"확인하다",p:"동사",e:"もう一度確かめてみます。",ek:"もういちどたしかめてみます。",eo:"한 번 더 확인해 볼게요."}
+  ]
+},
+{
+  t:"い형용사",
+  items:[
+    {cover:true, no:"주제 20", t:"い형용사",
+     lead:"い로 끝나고, 그 い가 활용한다. 高い → 高かった.",
+     peek:["大きい","新しい","明るい","嬉しい"]},
+    {w:"大きい",r:"おおきい",k:"크다",p:"い형용사",e:"もう少し大きいサイズはありますか。",ek:"もうすこしおおきいサイズはありますか。",eo:"좀 더 큰 사이즈 있나요?"},
+    {w:"小さい",r:"ちいさい",k:"작다",p:"い형용사",e:"この靴は少し小さいです。",ek:"このくつはすこしちいさいです。",eo:"이 신발은 좀 작아요."},
+    {w:"新しい",r:"あたらしい",k:"새롭다",p:"い형용사",e:"新しい靴を買いました。",ek:"あたらしいくつをかいました。",eo:"새 신발을 샀어요."},
+    {w:"古い",r:"ふるい",k:"오래되다, 낡다",p:"い형용사",e:"この建物はかなり古いです。",ek:"このたてものはかなりふるいです。",eo:"이 건물은 꽤 오래됐어요."},
+    {w:"いい",r:"いい",k:"좋다",p:"い형용사",e:"それはいい考えですね。",ek:"それはいいかんがえですね。",eo:"그거 좋은 생각이네요."},
+    {w:"悪い",r:"わるい",k:"나쁘다",p:"い형용사",e:"今日は体調が悪いです。",ek:"きょうはたいちょうがわるいです。",eo:"오늘은 컨디션이 안 좋아요."},
+    {w:"長い",r:"ながい",k:"길다",p:"い형용사",e:"このズボンは少し長いです。",ek:"このズボンはすこしながいです。",eo:"이 바지는 좀 길어요."},
+    {w:"短い",r:"みじかい",k:"짧다",p:"い형용사",e:"休みが短くて残念です。",ek:"やすみがみじかくてざんねんです。",eo:"휴가가 짧아서 아쉬워요."},
+    {w:"早い",r:"はやい",k:"이르다",p:"い형용사",e:"まだ早いので、少し待ちましょう。",ek:"まだはやいので、すこしまちましょう。",eo:"아직 이르니까 좀 기다려요."},
+    {w:"速い",r:"はやい",k:"빠르다",p:"い형용사",e:"地下鉄のほうが速いです。",ek:"ちかてつのほうがはやいです。",eo:"지하철이 더 빨라요."},
+    {w:"遅い",r:"おそい",k:"늦다, 느리다",p:"い형용사",e:"もう遅いので帰ります。",ek:"もうおそいのでかえります。",eo:"이제 늦었으니 갈게요."},
+    {w:"近い",r:"ちかい",k:"가깝다",p:"い형용사",e:"ホテルは駅から近いです。",ek:"ホテルはえきからちかいです。",eo:"호텔은 역에서 가까워요."},
+    {w:"遠い",r:"とおい",k:"멀다",p:"い형용사",e:"ここからは少し遠いです。",ek:"ここからはすこしとおいです。",eo:"여기서는 좀 멀어요."},
+    {w:"広い",r:"ひろい",k:"넓다",p:"い형용사",e:"部屋が広くて気に入りました。",ek:"へやがひろくてきにいりました。",eo:"방이 넓어서 마음에 들어요."},
+    {w:"狭い",r:"せまい",k:"좁다",p:"い형용사",e:"この道は狭いので気をつけて。",ek:"このみちはせまいのできをつけて。",eo:"이 길은 좁으니 조심해."},
+    {w:"明るい",r:"あかるい",k:"밝다",p:"い형용사",e:"この部屋は明るいですね。",ek:"このへやはあかるいですね。",eo:"이 방은 밝네요."},
+    {w:"暗い",r:"くらい",k:"어둡다",p:"い형용사",e:"外はもう暗いです。",ek:"そとはもうくらいです。",eo:"밖은 벌써 어두워요."},
+    {w:"重い",r:"おもい",k:"무겁다",p:"い형용사",e:"この荷物、重いですね。",ek:"このにもつ、おもいですね。",eo:"이 짐 무겁네요."},
+    {w:"軽い",r:"かるい",k:"가볍다",p:"い형용사",e:"軽いので持ちやすいです。",ek:"かるいのでもちやすいです。",eo:"가벼워서 들기 편해요."},
+    {w:"太い",r:"ふとい",k:"굵다",p:"い형용사",e:"太いペンで書いてください。",ek:"ふといペンでかいてください。",eo:"굵은 펜으로 써주세요."},
+    {w:"細い",r:"ほそい",k:"가늘다",p:"い형용사",e:"細い道を入ってすぐです。",ek:"ほそいみちをはいってすぐです。",eo:"좁은 길로 들어가면 바로예요."},
+    {w:"低い",r:"ひくい",k:"낮다",p:"い형용사",e:"この椅子は少し低いです。",ek:"このいすはすこしひくいです。",eo:"이 의자는 좀 낮아요."},
+    {w:"若い",r:"わかい",k:"젊다",p:"い형용사",e:"この店は若い人に人気です。",ek:"このみせはわかいひとににんきです。",eo:"이 가게는 젊은 사람들에게 인기예요."},
+    {w:"汚い",r:"きたない",k:"더럽다",p:"い형용사",e:"手が汚いので洗ってきます。",ek:"てがきたないのであらってきます。",eo:"손이 더러워서 씻고 올게요."},
+    {w:"危ない",r:"あぶない",k:"위험하다",p:"い형용사",e:"危ないので下がってください。",ek:"あぶないのでさがってください。",eo:"위험하니 물러서 주세요."},
+    {w:"うるさい",r:"うるさい",k:"시끄럽다",p:"い형용사",e:"隣の部屋が少しうるさいです。",ek:"となりのへやがすこしうるさいです。",eo:"옆방이 좀 시끄러워요."},
+    {w:"かわいい",r:"かわいい",k:"귀엽다",p:"い형용사",e:"その鞄、かわいいですね。",ek:"そのかばん、かわいいですね。",eo:"그 가방 귀엽네요."},
+    {w:"欲しい",r:"ほしい",k:"갖고 싶다",p:"い형용사",e:"新しいパソコンが欲しいです。",ek:"あたらしいパソコンがほしいです。",eo:"새 컴퓨터가 갖고 싶어요."},
+    {w:"丸い",r:"まるい",k:"둥글다",p:"い형용사",e:"丸いテーブルを探しています。",ek:"まるいテーブルをさがしています。",eo:"둥근 테이블을 찾고 있어요."},
+    {w:"硬い",r:"かたい",k:"딱딱하다",p:"い형용사",e:"ベッドが少し硬いです。",ek:"ベッドがすこしかたいです。",eo:"침대가 좀 딱딱해요."},
+    {w:"柔らかい",r:"やわらかい",k:"부드럽다",p:"い형용사",e:"この肉は柔らかいです。",ek:"このにくはやわらかいです。",eo:"이 고기는 부드러워요."},
+    {w:"深い",r:"ふかい",k:"깊다",p:"い형용사",e:"この池は深いので危ないです。",ek:"このいけはふかいのであぶないです。",eo:"이 연못은 깊어서 위험해요."},
+    {w:"白い",r:"しろい",k:"하얗다",p:"い형용사",e:"白いシャツを探しています。",ek:"しろいシャツをさがしています。",eo:"흰 셔츠를 찾고 있어요."},
+    {w:"黒い",r:"くろい",k:"검다",p:"い형용사",e:"黒い鞄を持っています。",ek:"くろいかばんをもっています。",eo:"검은 가방을 들고 있어요."},
+    {w:"赤い",r:"あかい",k:"빨갛다",p:"い형용사",e:"赤いペンで書いてください。",ek:"あかいペンでかいてください。",eo:"빨간 펜으로 써주세요."},
+    {w:"青い",r:"あおい",k:"파랗다",p:"い형용사",e:"今日は空が青いですね。",ek:"きょうはそらがあおいですね。",eo:"오늘은 하늘이 파랗네요."},
+    {w:"珍しい",r:"めずらしい",k:"드물다, 진귀하다",p:"い형용사",e:"珍しい花ですね。",ek:"めずらしいはなですね。",eo:"보기 드문 꽃이네요."},
+    {w:"優しい",r:"やさしい",k:"상냥하다, 다정하다",p:"い형용사",e:"店員さんが優しかったです。",ek:"てんいんさんがやさしかったです。",eo:"점원이 친절했어요."},
+    {w:"寂しい",r:"さびしい",k:"외롭다, 쓸쓸하다",p:"い형용사",e:"一人だと少し寂しいです。",ek:"ひとりだとすこしさびしいです。",eo:"혼자면 좀 외로워요."},
+    {w:"嬉しい",r:"うれしい",k:"기쁘다",p:"い형용사",e:"連絡をもらえて嬉しいです。",ek:"れんらくをもらえてうれしいです。",eo:"연락 주셔서 기뻐요."},
+    {w:"悲しい",r:"かなしい",k:"슬프다",p:"い형용사",e:"その話は少し悲しいです。",ek:"そのはなしはすこしかなしいです。",eo:"그 이야기는 좀 슬퍼요."},
+    {w:"怖い",r:"こわい",k:"무섭다",p:"い형용사",e:"高い所が怖いです。",ek:"たかいところがこわいです。",eo:"높은 곳이 무서워요."},
+    {w:"薄い",r:"うすい",k:"얇다, 연하다",p:"い형용사",e:"味が少し薄いですね。",ek:"あじがすこしうすいですね。",eo:"맛이 좀 싱겁네요."},
+    {w:"厚い",r:"あつい",k:"두껍다",p:"い형용사",e:"厚いコートを出しました。",ek:"あついコートをだしました。",eo:"두꺼운 코트를 꺼냈어요."},
+    {w:"すごい",r:"すごい",k:"대단하다",p:"い형용사",e:"それはすごいですね。",ek:"それはすごいですね。",eo:"그거 대단하네요."},
+    {w:"ちょうどいい",r:"ちょうどいい",k:"딱 좋다, 알맞다",p:"표현",e:"このサイズがちょうどいいです。",ek:"このサイズがちょうどいいです。",eo:"이 사이즈가 딱 좋아요."}
+  ]
+},
+{
+  t:"な형용사",
+  items:[
+    {cover:true, no:"주제 21", t:"な형용사",
+     lead:"명사에 가깝다. 명사를 꾸밀 때 뒤에 な를 붙인다.",
+     peek:["静か","便利","大丈夫","素敵"]},
+    {w:"静か",r:"しずか",k:"조용함",p:"な형용사",e:"静かな所で話しましょう。",ek:"しずかなところではなしましょう。",eo:"조용한 곳에서 얘기해요."},
+    {w:"賑やか",r:"にぎやか",k:"북적임, 활기참",p:"な형용사",e:"この通りは夜も賑やかです。",ek:"このとおりはよるもにぎやかです。",eo:"이 거리는 밤에도 북적여요."},
+    {w:"きれい",r:"きれい",k:"예쁨, 깨끗함",p:"な형용사",e:"部屋がとてもきれいですね。",ek:"へやがとてもきれいですね。",eo:"방이 아주 깨끗하네요."},
+    {w:"有名",r:"ゆうめい",k:"유명함",p:"な형용사",e:"この店はラーメンで有名です。",ek:"このみせはラーメンでゆうめいです。",eo:"이 가게는 라멘으로 유명해요."},
+    {w:"親切",r:"しんせつ",k:"친절함",p:"な형용사",e:"駅員さんがとても親切でした。",ek:"えきいんさんがとてもしんせつでした。",eo:"역무원이 아주 친절했어요."},
+    {w:"便利",r:"べんり",k:"편리함",p:"な형용사",e:"このアプリ、すごく便利です。",ek:"このアプリ、すごくべんりです。",eo:"이 앱 정말 편리해요."},
+    {w:"不便",r:"ふべん",k:"불편함",p:"な형용사",e:"車がないと少し不便です。",ek:"くるまがないとすこしふべんです。",eo:"차가 없으면 좀 불편해요."},
+    {w:"大丈夫",r:"だいじょうぶ",k:"괜찮음",p:"な형용사",e:"少し遅れても大丈夫ですよ。",ek:"すこしおくれてもだいじょうぶですよ。",eo:"조금 늦어도 괜찮아요."},
+    {w:"大変",r:"たいへん",k:"힘듦, 큰일임",p:"な형용사",e:"引っ越しは大変でした。",ek:"ひっこしはたいへんでした。",eo:"이사는 힘들었어요."},
+    {w:"簡単",r:"かんたん",k:"간단함, 쉬움",p:"な형용사",e:"操作はとても簡単です。",ek:"そうさはとてもかんたんです。",eo:"조작은 아주 간단해요."},
+    {w:"特別",r:"とくべつ",k:"특별함",p:"な형용사",e:"今日は特別なメニューがあります。",ek:"きょうはとくべつなメニューがあります。",eo:"오늘은 특별 메뉴가 있어요."},
+    {w:"十分",r:"じゅうぶん",k:"충분함",p:"な형용사",e:"これで十分です。",ek:"これでじゅうぶんです。",eo:"이걸로 충분해요."},
+    {w:"安全",r:"あんぜん",k:"안전함",p:"な형용사",e:"ここは安全なので大丈夫です。",ek:"ここはあんぜんなのでだいじょうぶです。",eo:"여기는 안전하니 괜찮아요."},
+    {w:"危険",r:"きけん",k:"위험함",p:"な형용사",e:"危険ですから入らないでください。",ek:"きけんですからはいらないでください。",eo:"위험하니 들어가지 마세요."},
+    {w:"自由",r:"じゆう",k:"자유로움",p:"な형용사",e:"時間は自由に使えます。",ek:"じかんはじゆうにつかえます。",eo:"시간은 자유롭게 쓸 수 있어요."},
+    {w:"必要",r:"ひつよう",k:"필요함",p:"な형용사",e:"予約は必要ですか。",ek:"よやくはひつようですか。",eo:"예약이 필요한가요?"},
+    {w:"無理",r:"むり",k:"무리임",p:"な형용사",e:"今日中は無理だと思います。",ek:"きょうじゅうはむりだとおもいます。",eo:"오늘 안에는 무리일 것 같아요."},
+    {w:"残念",r:"ざんねん",k:"아쉬움, 유감",p:"な형용사",e:"行けなくて残念です。",ek:"いけなくてざんねんです。",eo:"못 가서 아쉬워요."},
+    {w:"大切",r:"たいせつ",k:"소중함, 중요함",p:"な형용사",e:"これは大切な書類です。",ek:"これはたいせつなしょるいです。",eo:"이건 중요한 서류예요."},
+    {w:"立派",r:"りっぱ",k:"훌륭함",p:"な형용사",e:"立派な建物ですね。",ek:"りっぱなたてものですね。",eo:"훌륭한 건물이네요."},
+    {w:"丁寧",r:"ていねい",k:"정중함, 꼼꼼함",p:"な형용사",e:"説明が丁寧で助かりました。",ek:"せつめいがていねいでたすかりました。",eo:"설명이 꼼꼼해서 도움이 됐어요."},
+    {w:"暇",r:"ひま",k:"한가함",p:"な형용사",e:"今、暇ですか。",ek:"いま、ひまですか。",eo:"지금 시간 있어요?"},
+    {w:"真面目",r:"まじめ",k:"성실함",p:"な형용사",e:"彼はとても真面目な人です。",ek:"かれはとてもまじめなひとです。",eo:"그는 아주 성실한 사람이에요."},
+    {w:"素敵",r:"すてき",k:"멋짐",p:"な형용사",e:"素敵なお店ですね。",ek:"すてきなおみせですね。",eo:"멋진 가게네요."},
+    {w:"心配",r:"しんぱい",k:"걱정스러움",p:"な형용사",e:"天気が心配です。",ek:"てんきがしんぱいです。",eo:"날씨가 걱정이에요."},
+    {w:"同じ",r:"おなじ",k:"같음",p:"な형용사",e:"私も同じものにします。",ek:"わたしもおなじものにします。",eo:"저도 같은 걸로 할게요."},
+    {w:"いろいろ",r:"いろいろ",k:"여러 가지",p:"な형용사",e:"いろいろ教えてくださってありがとうございます。",ek:"いろいろおしえてくださってありがとうございます。",eo:"여러 가지 알려주셔서 감사합니다."},
+    {w:"結構",r:"けっこう",k:"괜찮음, 충분함",p:"な형용사",e:"いいえ、結構です。",ek:"いいえ、けっこうです。",eo:"아니요, 괜찮습니다."},
+    {w:"楽",r:"らく",k:"편함, 수월함",p:"な형용사",e:"この靴は歩くのが楽です。",ek:"このくつはあるくのがらくです。",eo:"이 신발은 걷기 편해요."},
+    {w:"上手",r:"じょうず",k:"잘함, 능숙함",p:"な형용사",e:"日本語がお上手ですね。",ek:"にほんごがおじょうずですね。",eo:"일본어를 잘하시네요."}
+  ]
+},
+{
+  t:"부사 · 접속사",
+  items:[
+    {cover:true, no:"주제 22", t:"부사 · 접속사",
+     lead:"말과 말을 잇고 정도를 조절한다. あまり·全然은 뒤에 부정이 온다.",
+     peek:["よく","あまり","だんだん","それから"]},
+    {w:"ちょっと",r:"ちょっと",k:"조금, 잠깐",p:"부사",e:"ちょっとよろしいですか。",ek:"ちょっとよろしいですか。",eo:"잠깐 괜찮으세요?"},
+    {w:"もう",r:"もう",k:"이미, 벌써",p:"부사",e:"準備はもうできました。",ek:"じゅんびはもうできました。",eo:"준비는 이미 다 됐어요."},
+    {w:"まだ",r:"まだ",k:"아직",p:"부사",e:"返事はまだ来ていません。",ek:"へんじはまだきていません。",eo:"답장은 아직 안 왔어요."},
+    {w:"たぶん",r:"たぶん",k:"아마",p:"부사",e:"彼はたぶん来ないと思います。",ek:"かれはたぶんこないとおもいます。",eo:"그는 아마 안 올 것 같아요."},
+    {w:"一緒に",r:"いっしょに",k:"함께, 같이",p:"부사",e:"よかったら一緒に行きませんか。",ek:"よかったらいっしょにいきませんか。",eo:"괜찮으면 같이 가지 않을래요?"},
+    {w:"とても",r:"とても",k:"매우, 아주",p:"부사",e:"説明がとても分かりやすかったです。",ek:"せつめいがとてもわかりやすかったです。",eo:"설명이 아주 이해하기 쉬웠어요."},
+    {w:"すぐ",r:"すぐ",k:"곧, 바로",p:"부사",e:"すぐ戻りますので、少々お待ちください。",ek:"すぐもどりますので、しょうしょうおまちください。",eo:"금방 돌아오니 잠시만 기다려 주세요."},
+    {w:"よく",r:"よく",k:"자주, 잘",p:"부사",e:"この店にはよく来ます。",ek:"このみせにはよくきます。",eo:"이 가게에는 자주 와요."},
+    {w:"あまり",r:"あまり",k:"별로 (~않다)",p:"부사",e:"あまり高くありません。",ek:"あまりたかくありません。",eo:"별로 비싸지 않아요."},
+    {w:"全然",r:"ぜんぜん",k:"전혀 (~않다)",p:"부사",e:"全然分かりませんでした。",ek:"ぜんぜんわかりませんでした。",eo:"전혀 몰랐어요."},
+    {w:"時々",r:"ときどき",k:"가끔",p:"부사",e:"時々ここで昼ご飯を食べます。",ek:"ときどきここでひるごはんをたべます。",eo:"가끔 여기서 점심을 먹어요."},
+    {w:"いつも",r:"いつも",k:"항상, 늘",p:"부사",e:"いつもお世話になっています。",ek:"いつもおせわになっています。",eo:"늘 신세 지고 있습니다."},
+    {w:"必ず",r:"かならず",k:"반드시",p:"부사",e:"必ず連絡します。",ek:"かならずれんらくします。",eo:"반드시 연락드리겠습니다."},
+    {w:"きっと",r:"きっと",k:"분명, 틀림없이",p:"부사",e:"きっと喜んでくれますよ。",ek:"きっとよろこんでくれますよ。",eo:"분명 좋아하실 거예요."},
+    {w:"もっと",r:"もっと",k:"더, 더욱",p:"부사",e:"もっとゆっくり話してください。",ek:"もっとゆっくりはなしてください。",eo:"좀 더 천천히 말씀해 주세요."},
+    {w:"一番",r:"いちばん",k:"가장, 제일",p:"부사",e:"これが一番人気です。",ek:"これがいちばんにんきです。",eo:"이게 제일 인기예요."},
+    {w:"だいたい",r:"だいたい",k:"대략, 대체로",p:"부사",e:"だいたい三十分かかります。",ek:"だいたいさんじゅっぷんかかります。",eo:"대략 30분 걸려요."},
+    {w:"ゆっくり",r:"ゆっくり",k:"천천히, 느긋하게",p:"부사",e:"どうぞごゆっくり。",ek:"どうぞごゆっくり。",eo:"천천히 하세요."},
+    {w:"はっきり",r:"はっきり",k:"분명히",p:"부사",e:"はっきり言ってもいいですか。",ek:"はっきりいってもいいですか。",eo:"솔직히 말해도 될까요?"},
+    {w:"だんだん",r:"だんだん",k:"점점",p:"부사",e:"だんだん暖かくなってきました。",ek:"だんだんあたたかくなってきました。",eo:"점점 따뜻해지고 있어요."},
+    {w:"やっと",r:"やっと",k:"겨우, 드디어",p:"부사",e:"やっと終わりました。",ek:"やっとおわりました。",eo:"드디어 끝났어요."},
+    {w:"まず",r:"まず",k:"우선, 먼저",p:"부사",e:"まず受付で名前を書きます。",ek:"まずうけつけでなまえをかきます。",eo:"우선 접수처에서 이름을 씁니다."},
+    {w:"次に",r:"つぎに",k:"다음으로",p:"부사",e:"次に写真を撮ります。",ek:"つぎにしゃしんをとります。",eo:"다음으로 사진을 찍습니다."},
+    {w:"また",r:"また",k:"또, 다시",p:"부사",e:"また明日会いましょう。",ek:"またあしたあいましょう。",eo:"내일 또 봐요."},
+    {w:"もう一度",r:"もういちど",k:"한 번 더",p:"부사",e:"もう一度言ってもらえますか。",ek:"もういちどいってもらえますか。",eo:"한 번 더 말씀해 주실래요?"},
+    {w:"初めて",r:"はじめて",k:"처음으로",p:"부사",e:"日本は初めてです。",ek:"にほんははじめてです。",eo:"일본은 처음이에요."},
+    {w:"本当に",r:"ほんとうに",k:"정말로",p:"부사",e:"本当にありがとうございました。",ek:"ほんとうにありがとうございました。",eo:"정말 감사했습니다."},
+    {w:"少しずつ",r:"すこしずつ",k:"조금씩",p:"부사",e:"少しずつ覚えています。",ek:"すこしずつおぼえています。",eo:"조금씩 외우고 있어요."},
+    {w:"ずっと",r:"ずっと",k:"쭉, 훨씬",p:"부사",e:"今週はずっと忙しいです。",ek:"こんしゅうはずっといそがしいです。",eo:"이번 주는 계속 바빠요."},
+    {w:"そろそろ",r:"そろそろ",k:"슬슬",p:"부사",e:"そろそろ始めましょう。",ek:"そろそろはじめましょう。",eo:"슬슬 시작합시다."},
+    {w:"やはり",r:"やはり",k:"역시",p:"부사",e:"やはりこちらにします。",ek:"やはりこちらにします。",eo:"역시 이걸로 할게요."},
+    {w:"特に",r:"とくに",k:"특히",p:"부사",e:"特に問題はありません。",ek:"とくにもんだいはありません。",eo:"특별히 문제는 없습니다."},
+    {w:"急に",r:"きゅうに",k:"갑자기",p:"부사",e:"急に用事ができました。",ek:"きゅうにようじができました。",eo:"갑자기 일이 생겼어요."},
+    {w:"ちょうど",r:"ちょうど",k:"마침, 딱",p:"부사",e:"ちょうど今、着いたところです。",ek:"ちょうどいま、ついたところです。",eo:"마침 지금 막 도착했어요."},
+    {w:"一人で",r:"ひとりで",k:"혼자서",p:"부사",e:"一人で行っても大丈夫です。",ek:"ひとりでいってもだいじょうぶです。",eo:"혼자 가도 괜찮아요."},
+    {w:"でも",r:"でも",k:"하지만",p:"접속사",e:"行きたいです。でも、今日は時間がありません。",ek:"いきたいです。でも、きょうはじかんがありません。",eo:"가고 싶어요. 하지만 오늘은 시간이 없어요."},
+    {w:"それから",r:"それから",k:"그리고, 그다음에",p:"접속사",e:"それから駅に向かいました。",ek:"それからえきにむかいました。",eo:"그러고 나서 역으로 향했어요."},
+    {w:"そして",r:"そして",k:"그리고",p:"접속사",e:"そして最後に確認します。",ek:"そしてさいごにかくにんします。",eo:"그리고 마지막에 확인합니다."},
+    {w:"だから",r:"だから",k:"그래서, 그러니까",p:"접속사",e:"雨です。だからタクシーで行きます。",ek:"あめです。だからタクシーでいきます。",eo:"비가 와요. 그래서 택시로 갈게요."},
+    {w:"しかし",r:"しかし",k:"그러나",p:"접속사",e:"しかし、時間が足りません。",ek:"しかし、じかんがたりません。",eo:"그러나 시간이 부족합니다."},
+    {w:"それで",r:"それで",k:"그래서",p:"접속사",e:"それで遅れてしまいました。",ek:"それでおくれてしまいました。",eo:"그래서 늦어버렸어요."},
+    {w:"じゃあ",r:"じゃあ",k:"그럼",p:"접속사",e:"じゃあ、また明日。",ek:"じゃあ、またあした。",eo:"그럼, 내일 봐요."},
+    {w:"では",r:"では",k:"그럼 (격식)",p:"접속사",e:"では、始めましょう。",ek:"では、はじめましょう。",eo:"그럼 시작하겠습니다."},
+    {w:"~ながら",r:"ながら",k:"~하면서",p:"문형",e:"音楽を聞きながら歩きます。",ek:"おんがくをききながらあるきます。",eo:"음악을 들으면서 걷습니다."},
+    {w:"~から",r:"から",k:"~부터 / ~때문에",p:"조사",e:"九時から開いています。",ek:"くじからあいています。",eo:"9시부터 열려 있습니다."},
+    {w:"~まで",r:"まで",k:"~까지",p:"조사",e:"駅まで歩きます。",ek:"えきまであるきます。",eo:"역까지 걷습니다."}
+  ]
+},
+{
+  t:"대명사 · 지시어 · 의문사",
+  items:[
+    {cover:true, no:"주제 23", t:"대명사 · 지시어 · 의문사",
+     lead:"こそあど. 이·그·저·어느가 규칙적으로 짝을 이룬다.",
+     peek:["これ","それ","どこ","どうして"]},
+    {w:"これ",r:"これ",k:"이것",p:"대명사",e:"これをください。",ek:"これをください。",eo:"이거 주세요."},
+    {w:"それ",r:"それ",k:"그것",p:"대명사",e:"それは何ですか。",ek:"それはなんですか。",eo:"그건 뭐예요?"},
+    {w:"あれ",r:"あれ",k:"저것",p:"대명사",e:"あれをお願いします。",ek:"あれをおねがいします。",eo:"저걸로 주세요."},
+    {w:"どれ",r:"どれ",k:"어느 것",p:"의문",e:"どれがおすすめですか。",ek:"どれがおすすめですか。",eo:"어느 게 추천이에요?"},
+    {w:"この",r:"この",k:"이 ~",p:"연체사",e:"この本、借りてもいいですか。",ek:"このほん、かりてもいいですか。",eo:"이 책 빌려도 될까요?"},
+    {w:"その",r:"その",k:"그 ~",p:"연체사",e:"その話は聞きました。",ek:"そのはなしはききました。",eo:"그 얘기는 들었어요."},
+    {w:"あの",r:"あの",k:"저 ~",p:"연체사",e:"あの白い建物です。",ek:"あのしろいたてものです。",eo:"저 흰 건물이에요."},
+    {w:"どの",r:"どの",k:"어느 ~",p:"의문",e:"どの季節が好きですか。",ek:"どのきせつがすきですか。",eo:"어느 계절을 좋아하세요?"},
+    {w:"ここ",r:"ここ",k:"여기",p:"대명사",e:"ここに置いてもいいですか。",ek:"ここにおいてもいいですか。",eo:"여기 놔도 되나요?"},
+    {w:"そこ",r:"そこ",k:"거기",p:"대명사",e:"そこを左に曲がります。",ek:"そこをひだりにまがります。",eo:"거기서 왼쪽으로 돕니다."},
+    {w:"あそこ",r:"あそこ",k:"저기",p:"대명사",e:"あそこで待っています。",ek:"あそこでまっています。",eo:"저기서 기다릴게요."},
+    {w:"どこ",r:"どこ",k:"어디",p:"의문",e:"すみません、トイレはどこですか。",ek:"すみません、トイレはどこですか。",eo:"실례합니다, 화장실은 어디예요?"},
+    {w:"何",r:"なに",k:"무엇",p:"의문",e:"何かお困りですか。",ek:"なにかおこまりですか。",eo:"뭔가 곤란한 일 있으세요?"},
+    {w:"誰",r:"だれ",k:"누구",p:"의문",e:"あの方はどなたですか。",ek:"あのかたはどなたですか。",eo:"저분은 누구세요?"},
+    {w:"いつ",r:"いつ",k:"언제",p:"의문",e:"いつごろお時間ありますか。",ek:"いつごろおじかんありますか。",eo:"언제쯤 시간 되세요?"},
+    {w:"どうして",r:"どうして",k:"왜, 어째서",p:"의문",e:"どうして遅れたんですか。",ek:"どうしておくれたんですか。",eo:"왜 늦었어요?"},
+    {w:"なぜ",r:"なぜ",k:"왜",p:"의문",e:"なぜそう思うのですか。",ek:"なぜそうおもうのですか。",eo:"왜 그렇게 생각하세요?"},
+    {w:"どう",r:"どう",k:"어떻게, 어때",p:"의문",e:"味はどうですか。",ek:"あじはどうですか。",eo:"맛은 어때요?"},
+    {w:"どんな",r:"どんな",k:"어떤",p:"의문",e:"どんな音楽が好きですか。",ek:"どんなおんがくがすきですか。",eo:"어떤 음악을 좋아하세요?"},
+    {w:"どうやって",r:"どうやって",k:"어떻게 (방법)",p:"의문",e:"どうやって行けばいいですか。",ek:"どうやっていけばいいですか。",eo:"어떻게 가면 되나요?"},
+    {w:"何時",r:"なんじ",k:"몇 시",p:"의문",e:"何時に出ましょうか。",ek:"なんじにでましょうか。",eo:"몇 시에 나갈까요?"},
+    {w:"誰か",r:"だれか",k:"누군가",p:"대명사",e:"事務所に誰かいますか。",ek:"じむしょにだれかいますか。",eo:"사무실에 누구 있나요?"},
+    {w:"何か",r:"なにか",k:"무언가",p:"대명사",e:"何か飲みますか。",ek:"なにかのみますか。",eo:"뭔가 마실래요?"},
+    {w:"どこか",r:"どこか",k:"어딘가",p:"대명사",e:"どこか静かな店に行きましょう。",ek:"どこかしずかなみせにいきましょう。",eo:"어딘가 조용한 가게에 가요."},
+    {w:"何も",r:"なにも",k:"아무것도 (~않다)",p:"대명사",e:"まだ何も決めていません。",ek:"まだなにもきめていません。",eo:"아직 아무것도 안 정했어요."},
+    {w:"誰も",r:"だれも",k:"아무도 (~않다)",p:"대명사",e:"誰もいませんでした。",ek:"だれもいませんでした。",eo:"아무도 없었어요."},
+    {w:"こんな",r:"こんな",k:"이런",p:"연체사",e:"こんな店を探していました。",ek:"こんなみせをさがしていました。",eo:"이런 가게를 찾고 있었어요."},
+    {w:"そんな",r:"そんな",k:"그런",p:"연체사",e:"そんなことはありません。",ek:"そんなことはありません。",eo:"그런 일 없어요."},
+    {w:"あんな",r:"あんな",k:"저런",p:"연체사",e:"あんな家に住みたいです。",ek:"あんないえにすみたいです。",eo:"저런 집에 살고 싶어요."},
+    {w:"こう",r:"こう",k:"이렇게",p:"부사",e:"こう書けばいいですか。",ek:"こうかけばいいですか。",eo:"이렇게 쓰면 되나요?"},
+    {w:"そう",r:"そう",k:"그렇게",p:"부사",e:"はい、そうです。",ek:"はい、そうです。",eo:"네, 그렇습니다."},
+    {w:"皆",r:"みんな",k:"모두",p:"대명사",e:"皆で行きましょう。",ek:"みんなでいきましょう。",eo:"다 같이 가요."},
+    {w:"どちら様",r:"どちらさま",k:"어느 분 (높임)",p:"의문",e:"失礼ですが、どちら様ですか。",ek:"しつれいですが、どちらさまですか。",eo:"실례지만 누구시죠?"},
+    {w:"こちらこそ",r:"こちらこそ",k:"저야말로",p:"표현",e:"こちらこそよろしくお願いします。",ek:"こちらこそよろしくおねがいします。",eo:"저야말로 잘 부탁드립니다."},
+    {w:"何でも",r:"なんでも",k:"뭐든지",p:"대명사",e:"何でも聞いてください。",ek:"なんでもきいてください。",eo:"뭐든지 물어보세요."}
+  ]
+},
+{
+  t:"동사 활용 ① 〜たい (하고 싶다)",
+  kind:"grammar",
+  items:[
+    {cover:true, no:"동사 활용 ①", t:"〜たい", sub:"~하고 싶다",
+     lead:"동사를 ます형으로 바꾼 뒤 たい를 붙인다. 한국어처럼 뒤에 붙이기만 하면 되는 게 아니라, 동사 자체가 먼저 변한다.",
+     bullets:["1 · 2 · 3그룹 만드는 법","2그룹처럼 생긴 1그룹 함정","たい가 붙으면 い형용사가 된다","を가 が로 바뀌는 이유","남에 대해서는 쓰지 않는다"],
+     meta:"설명 10장 · 동사 16개"},
+    {note:true, t:"한국어와 다른 점",
+     p:["한국어는 「가다 + 고 싶다」처럼 동사를 그대로 두고 뒤에 붙이면 끝난다.",
+        "일본어는 동사의 꼬리를 먼저 바꿔야 한다. 그 바뀐 모양을 ます형이라고 하고, 거기에 たい를 붙인다.",
+        "즉 두 단계다. ① 동사를 ます형으로 바꾼다 ② たい를 붙인다."],
+     rows:[["行く","行き","行きたい"]]},
+
+    {note:true, t:"ます형이란",
+     p:["「〜ます」 앞에 오는 모양이 ます형이다. 行きます의 「行き」, 食べます의 「食べ」.",
+        "정중형 ます를 이미 외웠다면 절반은 끝난 셈이다.",
+        "이 모양은 たい 말고도 계속 쓰인다. 〜ながら(하면서), 〜に行く(하러 가다), 〜方(하는 법). 하나 익히면 여러 개가 같이 열린다."],
+     rows:[["飲みます","飲み","飲みたい"],["飲み","+ながら","飲みながら"],["飲み","+に行く","飲みに行く"]]},
+
+    {note:true, t:"1그룹 — 마지막 글자를 い단으로",
+     p:["う단(う·く·ぐ·す·つ·ぬ·ぶ·む·る)으로 끝나는 대부분의 동사.",
+        "규칙은 하나다. 마지막 글자를 같은 행의 い단으로 바꾼다.",
+        "く→き, む→み, す→し, う→い, る→り, つ→ち, ぐ→ぎ, ぶ→び, ぬ→に"],
+     rows:[["行く (く→き)","行き","行きたい"],["飲む (む→み)","飲み","飲みたい"],["話す (す→し)","話し","話したい"],["買う (う→い)","買い","買いたい"],["待つ (つ→ち)","待ち","待ちたい"]]},
+
+    {note:true, t:"2그룹 — る만 뗀다",
+     p:["る로 끝나고, 그 앞이 い단이나 え단인 동사.",
+        "규칙이 제일 쉽다. る를 떼고 たい를 붙이면 끝.",
+        "食べる의 べ는 え단, 見る의 み는 い단이다."],
+     rows:[["食べる","食べ","食べたい"],["見る","見","見たい"],["起きる","起き","起きたい"],["教える","教え","教えたい"]]},
+
+    {note:true, t:"3그룹 — 딱 두 개",
+     p:["불규칙은 する와 来る 둘뿐이다. 그냥 외운다.",
+        "来る는 읽기가 「く」에서 「き」로 바뀌는 점을 주의. 来たい는 「きたい」이지 「くたい」가 아니다."],
+     rows:[["する","し","したい"],["来る (くる)","来 (き)","来たい (きたい)"]]},
+
+    {note:true, t:"함정 — 2그룹처럼 생긴 1그룹",
+     p:["る 앞이 え단·い단이면 보통 2그룹이지만, 예외적으로 1그룹인 동사들이 있다. 자주 나오는 것들이라 외워두면 좋다.",
+        "帰る(かえる), 入る(はいる), 走る(はしる), 切る(きる), 知る(しる), 要る(いる)",
+        "帰る는 「帰りたい」가 맞다. 「帰たい」는 틀린 말이다."],
+     rows:[["帰る","帰り","帰りたい"],["入る","入り","入りたい"],["切る","切り","切りたい"]]},
+
+    {note:true, t:"たい가 붙으면 い형용사가 된다",
+     p:["たい를 붙이는 순간 그 말은 더 이상 동사가 아니라 い형용사처럼 활용한다.",
+        "부정은 「たくない」, 과거는 「たかった」. い형용사 활용을 그대로 따라간다.",
+        "食べたい → 食べたくない → 食べたかった → 食べたくなかった"],
+     rows:[["食べたい","지금","먹고 싶다"],["食べたくない","부정","먹고 싶지 않다"],["食べたかった","과거","먹고 싶었다"],["食べたくなかった","과거 부정","먹고 싶지 않았다"]]},
+
+    {note:true, t:"조사가 を에서 が로 바뀌기도",
+     p:["목적어의 を가 が로 바뀔 수 있다. 둘 다 맞지만 が 쪽이 더 자연스럽게 들리는 경우가 많다.",
+        "水を飲む → 水が飲みたい / 水を飲みたい",
+        "が를 쓰면 「그 대상이 간절하다」는 느낌이 강해진다. 동작보다 대상에 초점이 간다."],
+     rows:[["水が飲みたい","자연스러움","물이 마시고 싶다"],["水を飲みたい","가능","물을 마시고 싶다"]]},
+
+    {note:true, t:"남에 대해서는 쓰지 않는다",
+     p:["たい는 내 욕구를 말할 때 쓴다. 남의 속마음은 알 수 없다고 보기 때문이다.",
+        "제3자에게는 「〜たがっている」를 쓴다.",
+        "단, 상대에게 직접 묻는 경우(「行きたいですか」)는 문법적으로 문제없다."],
+     rows:[["私は行きたいです","○","나는 가고 싶다"],["彼は行きたいです","△","(부자연스러움)"],["彼は行きたがっています","○","그는 가고 싶어 한다"]]},
+
+    {note:true, t:"실생활 주의 — 권할 때는 たい를 안 쓴다",
+     p:["문법은 맞지만 「食べたいですか」는 직설적이라 실제로는 잘 안 쓴다. 윗사람에게는 특히.",
+        "권하거나 제안할 때는 「〜ませんか」나 「いかがですか」를 쓴다.",
+        "시험보다 실생활에서 더 중요한 부분이다."],
+     rows:[["食べたいですか","△","드시고 싶으세요?"],["食べませんか","○","드시지 않을래요?"],["いかがですか","○","어떠세요?"]]},
+
+    {conj:true, w:"行く", r:"いく", k:"가다", g:"1그룹", steps:[{t:"行く",l:"기본형"},{t:"行き",l:"ます형"},{t:"行きたい",l:"いきたい"}], say:"いきたい",
+     e:"今度は京都に行きたいです。", ek:"こんどはきょうとにいきたいです。", eo:"이번에는 교토에 가고 싶어요."},
+    {conj:true, w:"飲む", r:"のむ", k:"마시다", g:"1그룹", steps:[{t:"飲む",l:"기본형"},{t:"飲み",l:"ます형"},{t:"飲みたい",l:"のみたい"}], say:"のみたい",
+     e:"冷たいものが飲みたいです。", ek:"つめたいものがのみたいです。", eo:"차가운 게 마시고 싶어요."},
+    {conj:true, w:"話す", r:"はなす", k:"이야기하다", g:"1그룹", steps:[{t:"話す",l:"기본형"},{t:"話し",l:"ます형"},{t:"話したい",l:"はなしたい"}], say:"はなしたい",
+     e:"少し話したいことがあります。", ek:"すこしはなしたいことがあります。", eo:"좀 얘기하고 싶은 게 있어요."},
+    {conj:true, w:"買う", r:"かう", k:"사다", g:"1그룹", steps:[{t:"買う",l:"기본형"},{t:"買い",l:"ます형"},{t:"買いたい",l:"かいたい"}], say:"かいたい",
+     e:"新しい靴が買いたいです。", ek:"あたらしいくつがかいたいです。", eo:"새 신발을 사고 싶어요."},
+    {conj:true, w:"待つ", r:"まつ", k:"기다리다", g:"1그룹", steps:[{t:"待つ",l:"기본형"},{t:"待ち",l:"ます형"},{t:"待ちたい",l:"まちたい"}], say:"まちたい",
+     e:"もう少し待ちたいです。", ek:"もうすこしまちたいです。", eo:"조금 더 기다리고 싶어요."},
+    {conj:true, w:"休む", r:"やすむ", k:"쉬다", g:"1그룹", steps:[{t:"休む",l:"기본형"},{t:"休み",l:"ます형"},{t:"休みたい",l:"やすみたい"}], say:"やすみたい",
+     e:"今日は早く休みたいです。", ek:"きょうははやくやすみたいです。", eo:"오늘은 일찍 쉬고 싶어요."},
+    {conj:true, w:"働く", r:"はたらく", k:"일하다", g:"1그룹", steps:[{t:"働く",l:"기본형"},{t:"働き",l:"ます형"},{t:"働きたい",l:"はたらきたい"}], say:"はたらきたい",
+     e:"いつか日本で働きたいです。", ek:"いつかにほんではたらきたいです。", eo:"언젠가 일본에서 일하고 싶어요."},
+    {conj:true, w:"会う", r:"あう", k:"만나다", g:"1그룹", steps:[{t:"会う",l:"기본형"},{t:"会い",l:"ます형"},{t:"会いたい",l:"あいたい"}], say:"あいたい",
+     e:"また会いたいですね。", ek:"またあいたいですね。", eo:"또 만나고 싶네요."},
+    {conj:true, w:"帰る", r:"かえる", k:"돌아가다", g:"1그룹 (함정)", steps:[{t:"帰る",l:"기본형"},{t:"帰り",l:"ます형"},{t:"帰りたい",l:"かえりたい"}], say:"かえりたい",
+     e:"疲れたので、もう帰りたいです。", ek:"つかれたので、もうかえりたいです。", eo:"피곤해서 이제 돌아가고 싶어요."},
+    {conj:true, w:"食べる", r:"たべる", k:"먹다", g:"2그룹", steps:[{t:"食べる",l:"기본형"},{t:"食べ",l:"ます형"},{t:"食べたい",l:"たべたい"}], say:"たべたい",
+     e:"何か甘いものが食べたいです。", ek:"なにかあまいものがたべたいです。", eo:"뭔가 단 게 먹고 싶어요."},
+    {conj:true, w:"見る", r:"みる", k:"보다", g:"2그룹", steps:[{t:"見る",l:"기본형"},{t:"見",l:"ます형"},{t:"見たい",l:"みたい"}], say:"みたい",
+     e:"その映画が見たいです。", ek:"そのえいががみたいです。", eo:"그 영화가 보고 싶어요."},
+    {conj:true, w:"起きる", r:"おきる", k:"일어나다", g:"2그룹", steps:[{t:"起きる",l:"기본형"},{t:"起き",l:"ます형"},{t:"起きたい",l:"おきたい"}], say:"おきたい",
+     e:"明日は早く起きたいです。", ek:"あしたははやくおきたいです。", eo:"내일은 일찍 일어나고 싶어요."},
+    {conj:true, w:"覚える", r:"おぼえる", k:"외우다", g:"2그룹", steps:[{t:"覚える",l:"기본형"},{t:"覚え",l:"ます형"},{t:"覚えたい",l:"おぼえたい"}], say:"おぼえたい",
+     e:"漢字をもっと覚えたいです。", ek:"かんじをもっとおぼえたいです。", eo:"한자를 더 외우고 싶어요."},
+    {conj:true, w:"教える", r:"おしえる", k:"가르치다", g:"2그룹", steps:[{t:"教える",l:"기본형"},{t:"教え",l:"ます형"},{t:"教えたい",l:"おしえたい"}], say:"おしえたい",
+     e:"いつか日本語を教えたいです。", ek:"いつかにほんごをおしえたいです。", eo:"언젠가 일본어를 가르치고 싶어요."},
+    {conj:true, w:"する", r:"する", k:"하다", g:"3그룹", steps:[{t:"する",l:"기본형"},{t:"し",l:"ます형"},{t:"したい",l:"したい"}], say:"したい",
+     e:"今日は何もしたくないです。", ek:"きょうはなにもしたくないです。", eo:"오늘은 아무것도 하고 싶지 않아요."},
+    {conj:true, w:"来る", r:"くる", k:"오다", g:"3그룹", steps:[{t:"来る",l:"기본형"},{t:"来",l:"ます형"},{t:"来たい",l:"きたい"}], say:"きたい",
+     e:"この店にはまた来たいです。", ek:"このみせにはまたきたいです。", eo:"이 가게에는 또 오고 싶어요."}
+  ]
+},
+{
+  t:"동사 활용 ② 〜て형 (하고 · 해서)",
+  kind:"grammar",
+  items:[
+    {cover:true, no:"동사 활용 ②", t:"〜て형", sub:"~하고 · ~해서",
+     lead:"문장을 잇는 모양. 활용 중 가장 까다롭지만 가장 많이 돌려 쓴다. 여기만 넘기면 여러 표현이 한꺼번에 열린다.",
+     bullets:["1그룹 음편 네 갈래","예외는 行く 하나뿐","〜ています / 〜てください / 〜てもいい","〜ています의 진행과 상태","〜た형은 공짜로 딸려온다"],
+     meta:"설명 13장 · 동사 20개"},
+    {note:true, t:"て형 하나로 다섯 개가 열린다",
+     p:["활용 중에 제일 까다롭지만, 제일 많이 돌려 쓰는 모양이다.",
+        "て형만 만들 줄 알면 아래가 전부 따라온다. 그래서 먼저 넘길 값어치가 있다.",
+        "이미 이 단어장 예문 곳곳에 나와 있던 모양들이다."],
+     rows:[["〜ています","~하고 있다"],["〜てください","~해 주세요"],["〜てもいいですか","~해도 될까요?"],["〜てはいけません","~하면 안 됩니다"],["〜てから","~하고 나서"]]},
+
+    {note:true, t:"て형은 '잇는' 모양이다",
+     p:["て형 자체에는 시제가 없다. 문장을 다음으로 잇거나, 뒤에 다른 말을 붙이기 위한 연결 고리다.",
+        "한국어의 「~하고」, 「~해서」에 가깝다.",
+        "朝ご飯を食べて、会社に行きます。 (아침을 먹고 회사에 갑니다)"],
+     rows:[["食べる","食べて","~하고"],["書く","書いて","+ください"]]},
+
+    {note:true, t:"1그룹 ① う · つ · る → って",
+     p:["1그룹은 어미에 따라 네 갈래로 갈린다. 이게 て형이 어려운 이유이자 전부다.",
+        "첫 번째 갈래. 어미가 う·つ·る면 「って」로 바뀐다.",
+        "세 개가 같은 모양으로 모이므로 묶어서 외우는 게 빠르다."],
+     rows:[["買う","買って"],["待つ","待って"],["帰る","帰って"]]},
+
+    {note:true, t:"1그룹 ② む · ぶ · ぬ → んで",
+     p:["두 번째 갈래. 「んで」로 바뀐다. て가 아니라 で인 점에 주의.",
+        "ぬ로 끝나는 동사는 일본어에 死ぬ 하나뿐이다. 사실상 む와 ぶ만 신경 쓰면 된다."],
+     rows:[["飲む","飲んで"],["遊ぶ","遊んで"],["死ぬ","死んで"]]},
+
+    {note:true, t:"1그룹 ③ く → いて / ぐ → いで",
+     p:["세 번째 갈래. く는 「いて」, ぐ는 「いで」가 된다.",
+        "탁점(゛)이 있으면 뒤에도 탁점이 붙는다고 기억하면 쉽다. ぐ → いで."],
+     rows:[["書く","書いて"],["聞く","聞いて"],["泳ぐ","泳いで"]]},
+
+    {note:true, t:"1그룹 ④ す → して",
+     p:["네 번째 갈래. 유일하게 소리가 거의 안 변한다.",
+        "ます형(話し)에 て를 붙인 것과 같은 모양이라 헷갈릴 일이 적다."],
+     rows:[["話す","話して"],["出す","出して"],["消す","消して"]]},
+
+    {note:true, t:"예외는 딱 하나 — 行く",
+     p:["行く는 く로 끝나니 규칙대로면 「行いて」여야 한다. 그런데 「行って」다.",
+        "1그룹 예외는 사실상 이것 하나뿐이다. 이 하나만 따로 외우면 된다.",
+        "자주 쓰는 동사라 틀리면 바로 티가 난다."],
+     rows:[["行く","行いて ✗"],["行く","行って ○"]]},
+
+    {note:true, t:"2그룹 — る만 떼고 て",
+     p:["동사 활용에서 2그룹은 언제나 제일 쉽다. る를 떼고 て를 붙이면 끝.",
+        "음편이 아예 없다. 〜たい 만들 때와 똑같은 방식이다."],
+     rows:[["食べる","食べて"],["見る","見て"],["起きる","起きて"]]},
+
+    {note:true, t:"3그룹 — 둘뿐",
+     p:["する와 来る. 그냥 외운다.",
+        "来る는 読み가 「く」에서 「き」로 바뀐다. 来て는 「きて」다."],
+     rows:[["する","して"],["来る (くる)","来て (きて)"]]},
+
+    {note:true, t:"함정 — 2그룹처럼 생긴 1그룹",
+     p:["〜たい 때와 같은 함정이 여기서도 그대로 나온다. 오히려 て형에서 더 눈에 띈다.",
+        "帰る·入る·走る·切る·知る·要る 는 る 앞이 え단·い단이지만 1그룹이다.",
+        "2그룹으로 착각하면 「帰て」가 되는데, 맞는 말은 「帰って」다."],
+     rows:[["帰る","帰って"],["入る","入って"],["知る","知って"]]},
+
+    {note:true, t:"보너스 — 〜た형은 공짜다",
+     p:["과거형(〜た형)은 て형과 규칙이 완전히 같다. て를 た로, で를 だ로 바꾸기만 하면 된다.",
+        "즉 て형을 넘기는 순간 과거형도 같이 넘긴 셈이다.",
+        "이게 て형을 먼저 배우는 가장 큰 이유다."],
+     rows:[["買って","買った"],["飲んで","飲んだ"],["書いて","書いた"],["して","した"]]},
+
+    {note:true, t:"음편 한 장 정리",
+     p:["1그룹만 모아보면 결국 네 줄이다. 이 표가 て형의 전부다.",
+        "2그룹은 る 떼기, 3그룹은 して·きて."],
+     rows:[["う · つ · る","って"],["む · ぶ · ぬ","んで"],["く","いて"],["ぐ","いで"],["す","して"],["行く (예외)","行って"]]},
+
+    {note:true, t:"〜ています의 두 얼굴",
+     p:["「지금 하고 있는 중」만 뜻하지 않는다. 「그런 상태다」라는 뜻으로도 아주 많이 쓴다.",
+        "住んでいます는 「사는 중」이 아니라 「살고 있다(상태)」다. 知っています도 마찬가지.",
+        "한국어의 「~하고 있다」와 범위가 달라서 처음에 어색하게 느껴지는 부분이다."],
+     rows:[["雨が降っています","진행","비가 오고 있다"],["東京に住んでいます","상태","도쿄에 산다"],["その店を知っています","상태","그 가게를 안다"]]},
+
+    {conj:true, w:"買う", r:"かう", k:"사다", g:"1그룹 う → って",
+     steps:[{t:"買う",l:"기본형"},{t:"買って",l:"かって"}], say:"かって",
+     e:"切手を買ってきます。", ek:"きってをかってきます。", eo:"우표 사올게요."},
+    {conj:true, w:"使う", r:"つかう", k:"쓰다, 사용하다", g:"1그룹 う → って",
+     steps:[{t:"使う",l:"기본형"},{t:"使って",l:"つかって"}], say:"つかって",
+     e:"このペンを使ってもいいですか。", ek:"このペンをつかってもいいですか。", eo:"이 펜 써도 될까요?"},
+    {conj:true, w:"待つ", r:"まつ", k:"기다리다", g:"1그룹 つ → って",
+     steps:[{t:"待つ",l:"기본형"},{t:"待って",l:"まって"}], say:"まって",
+     e:"ここで待っていてください。", ek:"ここでまっていてください。", eo:"여기서 기다려 주세요."},
+    {conj:true, w:"帰る", r:"かえる", k:"돌아가다", g:"1그룹 る → って (함정)",
+     steps:[{t:"帰る",l:"기본형"},{t:"帰って",l:"かえって"}], say:"かえって",
+     e:"今日は早く帰ってもいいですか。", ek:"きょうははやくかえってもいいですか。", eo:"오늘 일찍 가도 될까요?"},
+    {conj:true, w:"飲む", r:"のむ", k:"마시다", g:"1그룹 む → んで",
+     steps:[{t:"飲む",l:"기본형"},{t:"飲んで",l:"のんで"}], say:"のんで",
+     e:"薬は食後に飲んでください。", ek:"くすりはしょくごにのんでください。", eo:"약은 식후에 드세요."},
+    {conj:true, w:"休む", r:"やすむ", k:"쉬다", g:"1그룹 む → んで",
+     steps:[{t:"休む",l:"기본형"},{t:"休んで",l:"やすんで"}], say:"やすんで",
+     e:"少し休んでから行きましょう。", ek:"すこしやすんでからいきましょう。", eo:"좀 쉬고 나서 갑시다."},
+    {conj:true, w:"遊ぶ", r:"あそぶ", k:"놀다", g:"1그룹 ぶ → んで",
+     steps:[{t:"遊ぶ",l:"기본형"},{t:"遊んで",l:"あそんで"}], say:"あそんで",
+     e:"子供が公園で遊んでいます。", ek:"こどもがこうえんであそんでいます。", eo:"아이가 공원에서 놀고 있어요."},
+    {conj:true, w:"死ぬ", r:"しぬ", k:"죽다", g:"1그룹 ぬ → んで",
+     steps:[{t:"死ぬ",l:"기본형"},{t:"死んで",l:"しんで"}], say:"しんで",
+     e:"飼っていた魚が死んでしまいました。", ek:"かっていたさかながしんでしまいました。", eo:"키우던 물고기가 죽어버렸어요."},
+    {conj:true, w:"書く", r:"かく", k:"쓰다", g:"1그룹 く → いて",
+     steps:[{t:"書く",l:"기본형"},{t:"書いて",l:"かいて"}], say:"かいて",
+     e:"ここに名前を書いてください。", ek:"ここになまえをかいてください。", eo:"여기에 이름을 적어주세요."},
+    {conj:true, w:"聞く", r:"きく", k:"듣다, 묻다", g:"1그룹 く → いて",
+     steps:[{t:"聞く",l:"기본형"},{t:"聞いて",l:"きいて"}], say:"きいて",
+     e:"何でも聞いてください。", ek:"なんでもきいてください。", eo:"뭐든지 물어보세요."},
+    {conj:true, w:"泳ぐ", r:"およぐ", k:"수영하다", g:"1그룹 ぐ → いで",
+     steps:[{t:"泳ぐ",l:"기본형"},{t:"泳いで",l:"およいで"}], say:"およいで",
+     e:"ここで泳いでもいいですか。", ek:"ここでおよいでもいいですか。", eo:"여기서 수영해도 되나요?"},
+    {conj:true, w:"話す", r:"はなす", k:"이야기하다", g:"1그룹 す → して",
+     steps:[{t:"話す",l:"기본형"},{t:"話して",l:"はなして"}], say:"はなして",
+     e:"もう少しゆっくり話してください。", ek:"もうすこしゆっくりはなしてください。", eo:"조금 더 천천히 말씀해 주세요."},
+    {conj:true, w:"出す", r:"だす", k:"내다, 부치다", g:"1그룹 す → して",
+     steps:[{t:"出す",l:"기본형"},{t:"出して",l:"だして"}], say:"だして",
+     e:"この書類を出してきます。", ek:"このしょるいをだしてきます。", eo:"이 서류 내고 올게요."},
+    {conj:true, w:"行く", r:"いく", k:"가다", g:"1그룹 예외",
+     steps:[{t:"行く",l:"기본형"},{t:"行って",l:"いって"}], say:"いって",
+     e:"銀行に行ってきます。", ek:"ぎんこうにいってきます。", eo:"은행에 다녀올게요."},
+    {conj:true, w:"食べる", r:"たべる", k:"먹다", g:"2그룹",
+     steps:[{t:"食べる",l:"기본형"},{t:"食べて",l:"たべて"}], say:"たべて",
+     e:"朝ご飯を食べてから出ます。", ek:"あさごはんをたべてからでます。", eo:"아침 먹고 나서 나갑니다."},
+    {conj:true, w:"見る", r:"みる", k:"보다", g:"2그룹",
+     steps:[{t:"見る",l:"기본형"},{t:"見て",l:"みて"}], say:"みて",
+     e:"ちょっと見てもらえますか。", ek:"ちょっとみてもらえますか。", eo:"잠깐 봐주실래요?"},
+    {conj:true, w:"起きる", r:"おきる", k:"일어나다", g:"2그룹",
+     steps:[{t:"起きる",l:"기본형"},{t:"起きて",l:"おきて"}], say:"おきて",
+     e:"毎朝六時に起きています。", ek:"まいあさろくじにおきています。", eo:"매일 아침 6시에 일어납니다."},
+    {conj:true, w:"教える", r:"おしえる", k:"가르치다", g:"2그룹",
+     steps:[{t:"教える",l:"기본형"},{t:"教えて",l:"おしえて"}], say:"おしえて",
+     e:"やり方を教えてください。", ek:"やりかたをおしえてください。", eo:"방법을 알려주세요."},
+    {conj:true, w:"する", r:"する", k:"하다", g:"3그룹",
+     steps:[{t:"する",l:"기본형"},{t:"して",l:"して"}], say:"して",
+     e:"今、何をしていますか。", ek:"いま、なにをしていますか。", eo:"지금 뭐 하고 계세요?"},
+    {conj:true, w:"来る", r:"くる", k:"오다", g:"3그룹",
+     steps:[{t:"来る",l:"기본형"},{t:"来て",l:"きて"}], say:"きて",
+     e:"明日も来てください。", ek:"あしたもきてください。", eo:"내일도 와주세요."}
+  ]
+},
+{
+  t:"동사 활용 ③ 자동사 · 타동사",
+  kind:"grammar",
+  items:[
+    {cover:true, no:"동사 활용 ③", t:"자동사 · 타동사", sub:"~을 하다 / ~이 되다",
+     lead:"「내가 문을 닫는다」와 「문이 닫힌다」. 한국어에도 있는 구분인데 일본어는 짝이 더 촘촘하고, 자동사를 훨씬 즐겨 쓴다.",
+     bullets:["조사 を와 が로 구분하는 법","짝 14쌍과 예문 28개","일본어가 자동사를 좋아하는 이유","〜ている와 〜てある의 차이","자동사인데 を가 붙는 예외"],
+     meta:"설명 13장 · 짝 14쌍"},
+
+    {note:true, t:"한국어에도 있는데 왜 어려울까",
+     p:["「열다 / 열리다」, 「닫다 / 닫히다」. 한국어에도 같은 구분이 있으니 쉬워 보인다.",
+        "그런데 실제로 말을 만들어 보면 자꾸 틀린다. 이유는 두 가지다.",
+        "① 짝이 한국어와 1:1로 맞지 않는다. ② 일본어는 같은 상황에서도 자동사 쪽을 훨씬 자주 고른다.",
+        "그래서 뜻은 알아도 「어느 쪽이 자연스러운지」를 못 고르는 일이 생긴다. 이 강의는 그 감각을 잡는 게 목표다."]},
+
+    {note:true, t:"가장 확실한 구분법 — 조사를 본다",
+     p:["동사만 보고 외우려 하면 헷갈린다. 앞에 오는 조사까지 같이 외우면 거의 안 틀린다.",
+        "타동사 앞에는 「を」가 온다. 내가 그 대상에 무언가를 한다는 뜻이다.",
+        "자동사 앞에는 「が」가 온다. 그것이 저절로 그렇게 된다는 뜻이다.",
+        "단어장에서 외울 때도 「窓を開ける」, 「窓が開く」처럼 조사를 붙여 통째로 외우는 게 가장 빠르다."],
+     rows:[["窓を開ける","타동사","내가 연다"],["窓が開く","자동사","열린다"]]},
+
+    {note:true, t:"타동사에는 「하는 사람」이 있다",
+     p:["타동사는 누군가가 무언가에 손을 대는 말이다. 그래서 「누가」를 말할 수 있다.",
+        "자동사는 그런 사람이 없거나, 있어도 말하지 않는다. 그냥 그렇게 됐다는 사실만 전한다.",
+        "아래 두 문장은 같은 장면을 말하지만 초점이 완전히 다르다."],
+     rows:[["私がドアを閉めました","타동사","내가 닫았다"],["ドアが閉まりました","자동사","닫혔다"]]},
+
+    {note:true, t:"짝의 생김새에 힌트가 있다",
+     p:["모든 짝에 통하는 완벽한 규칙은 없다. 다만 자주 보이는 모양이 있어서 참고하면 도움이 된다.",
+        "「〜える」로 끝나면 타동사인 경우가 많다. 開ける, 閉める, 始める, 決める, 変える, 入れる.",
+        "짝이 되는 자동사는 「〜く」, 「〜まる」, 「〜わる」, 「〜る」 같은 모양이 된다.",
+        "규칙으로 외우려 들지 말고, 짝을 통째로 눈에 익히는 편이 훨씬 빠르다."],
+     rows:[["開ける","開く"],["閉める","閉まる"],["始める","始まる"],["決める","決まる"]]},
+
+    {note:true, t:"일본어는 자동사를 더 좋아한다",
+     p:["컵을 깨뜨렸다고 하자. 두 가지로 말할 수 있다.",
+        "「コップを割ってしまいました」 — 내가 깼다. 사실이지만 무겁게 들린다.",
+        "「コップが割れました」 — 컵이 깨졌다. 일본어에서는 이쪽이 훨씬 흔하다.",
+        "한국어도 둘 다 되지만, 일본어는 자동사 쪽으로 기우는 정도가 확연히 세다. 책임을 정면으로 드러내지 않는 말투에 가깝다.",
+        "그래서 자동사를 못 쓰면 말이 계속 딱딱하고 직설적으로 들린다."],
+     rows:[["コップを割ってしまいました","타동사","내가 깼다"],["コップが割れました","자동사","깨졌다 (더 흔함)"]]},
+
+    {note:true, t:"여기서부터가 진짜 어렵다",
+     p:["아래 두 문장은 한국어로 옮기면 둘 다 「문이 열려 있다」가 된다.",
+        "ドアが開いている  /  ドアが開けてある",
+        "한국어에는 이 둘을 가르는 표현이 없다. 그래서 구분할 단서가 모국어에 아예 없다.",
+        "다음 세 장에서 이 차이를 하나씩 본다. 여기만 넘기면 이 강의의 고비는 지난 것이다."]},
+
+    {note:true, t:"자동사 + ている = 그냥 그런 상태",
+     p:["「電気がついています」는 「불이 켜져 있다」는 뜻이다.",
+        "누가 켰는지는 관심 밖이다. 지금 그런 상태라는 사실만 말한다.",
+        "창문이 열려 있든, 문이 닫혀 있든, 눈에 보이는 상태를 그대로 전할 때 쓴다.",
+        "가장 자주 쓰는 형태이므로 이것부터 확실히 해두면 된다."],
+     rows:[["電気がついています","불이 켜져 있다"],["ドアが開いています","문이 열려 있다"],["窓が閉まっています","창문이 닫혀 있다"]]},
+
+    {note:true, t:"타동사 + てある = 누가 해둔 상태",
+     p:["「電気がつけてあります」도 「불이 켜져 있다」로 옮겨진다. 하지만 뜻이 다르다.",
+        "누군가 의도를 갖고 켜 두었다는 뉘앙스가 들어간다. 준비해 뒀다는 느낌이다.",
+        "주의할 점이 하나 있다. 타동사를 쓰는데도 조사는 「が」다. 「を」가 아니다.",
+        "손님이 오기 전에 미리 해둔 일들을 말할 때 자주 쓴다."],
+     rows:[["電気がつけてあります","누가 켜 두었다"],["ドアが開けてあります","누가 열어 두었다"],["名前が書いてあります","이름이 적혀 있다"]]},
+
+    {note:true, t:"둘을 나란히 놓고 보기",
+     p:["같은 장면을 보고도 무엇에 초점을 두느냐에 따라 갈린다.",
+        "자동사+ている은 상태만. 타동사+てある은 「누군가 그렇게 해뒀다」까지.",
+        "확신이 안 서면 자동사+ている을 쓰면 된다. 훨씬 자주 쓰이고 틀릴 위험도 적다."],
+     rows:[["窓が開いている","상태","열려 있다"],["窓が開けてある","의도","누가 열어 뒀다"]]},
+
+    {note:true, t:"〜ておく와 헷갈리지 말 것",
+     p:["모양이 비슷해서 자주 섞이는데, 하나는 행위이고 하나는 상태다.",
+        "「〜ておく」는 앞으로 미리 해두겠다는 행위다. 「窓を開けておきます」 = 창문을 열어 두겠습니다.",
+        "「〜てある」는 이미 그렇게 되어 있는 상태다. 「窓が開けてあります」 = 창문이 열려 있습니다.",
+        "조사도 다르다. ておく는 「を」, てある는 「が」."],
+     rows:[["窓を開けておきます","앞으로","열어 두겠다"],["窓が開けてあります","이미","열려 있다"]]},
+
+    {note:true, t:"예외 — 자동사인데 「を」가 붙는다",
+     p:["「자동사는 を를 안 쓴다」고 외웠는데 아래 문장들을 보면 を가 붙어 있다.",
+        "道を歩く, 家を出る, 橋を渡る, 公園を散歩する.",
+        "여기서 を는 목적어가 아니라 「지나는 곳」이나 「떠나는 곳」을 나타낸다. 이동을 뜻하는 자동사에서만 나온다.",
+        "숫자가 많지 않으니 이런 것들이 있다는 것만 알아두면 된다."],
+     rows:[["道を歩く","지나는 곳","길을 걷다"],["家を出る","떠나는 곳","집을 나서다"],["橋を渡る","지나는 곳","다리를 건너다"]]},
+
+    {note:true, t:"자주 틀리는 것 모음",
+     p:["조사와 동사가 짝이 안 맞는 실수가 대부분이다. 조사를 먼저 정하고 동사를 고르면 줄어든다.",
+        "「を」를 썼으면 타동사, 「が」를 썼으면 자동사. 이 하나만 지켜도 된다."],
+     rows:[["ドアを閉まりました ✗","ドアを閉めました ○"],["電車が止めました ✗","電車が止まりました ○"],["会議が始めます ✗","会議が始まります ○"]]},
+
+    {note:true, t:"외우는 요령",
+     p:["하나씩 외우면 반드시 섞인다. 반드시 짝으로 외운다.",
+        "그리고 동사만이 아니라 조사를 붙여서, 되도록 짧은 문장째로 외운다.",
+        "「窓を開ける / 窓が開く」처럼 입에 붙여 두면 실제로 말할 때 바로 나온다.",
+        "다음 장부터 짝 14쌍이 이어진다. 각 쌍마다 예문이 둘씩 있으니 소리 내어 읽어 보길 권한다."]},
+
+    {pair:true, hint:"〜ける / 〜く",
+     tr:{w:"開ける", r:"あける", k:"열다", e:"暑いので窓を開けます。", ek:"あついのでまどをあけます。", eo:"더워서 창문을 엽니다."},
+     itr:{w:"開く", r:"あく", k:"열리다", e:"この店は十時に開きます。", ek:"このみせはじゅうじにあきます。", eo:"이 가게는 10시에 엽니다."}},
+    {pair:true, hint:"〜める / 〜まる",
+     tr:{w:"閉める", r:"しめる", k:"닫다", e:"出る時はドアを閉めてください。", ek:"でるときはドアをしめてください。", eo:"나갈 때 문을 닫아주세요."},
+     itr:{w:"閉まる", r:"しまる", k:"닫히다", e:"銀行は三時に閉まります。", ek:"ぎんこうはさんじにしまります。", eo:"은행은 3시에 문을 닫습니다."}},
+    {pair:true, hint:"〜める / 〜まる",
+     tr:{w:"始める", r:"はじめる", k:"시작하다", e:"そろそろ会議を始めましょう。", ek:"そろそろかいぎをはじめましょう。", eo:"슬슬 회의를 시작합시다."},
+     itr:{w:"始まる", r:"はじまる", k:"시작되다", e:"映画はもう始まりました。", ek:"えいがはもうはじまりました。", eo:"영화는 벌써 시작했어요."}},
+    {pair:true, hint:"〜す / 〜る",
+     tr:{w:"出す", r:"だす", k:"내다, 부치다", e:"明日、手紙を出します。", ek:"あした、てがみをだします。", eo:"내일 편지를 부칩니다."},
+     itr:{w:"出る", r:"でる", k:"나가다, 출발하다", e:"バスはもうすぐ出ます。", ek:"バスはもうすぐでます。", eo:"버스는 곧 출발합니다."}},
+    {pair:true, hint:"〜れる / 〜る",
+     tr:{w:"入れる", r:"いれる", k:"넣다", e:"コーヒーに砂糖を入れますか。", ek:"コーヒーにさとうをいれますか。", eo:"커피에 설탕 넣으세요?"},
+     itr:{w:"入る", r:"はいる", k:"들어가다", e:"どうぞ中に入ってください。", ek:"どうぞなかにはいってください。", eo:"안으로 들어오세요."}},
+    {pair:true, hint:"〜とす / 〜ちる",
+     tr:{w:"落とす", r:"おとす", k:"떨어뜨리다", e:"電車で財布を落としました。", ek:"でんしゃでさいふをおとしました。", eo:"전철에서 지갑을 떨어뜨렸어요."},
+     itr:{w:"落ちる", r:"おちる", k:"떨어지다", e:"鍵が下に落ちましたよ。", ek:"かぎがしたにおちましたよ。", eo:"열쇠가 밑에 떨어졌어요."}},
+    {pair:true, hint:"〜める / 〜まる",
+     tr:{w:"止める", r:"とめる", k:"세우다, 멈추다", e:"ここに車を止めてもいいですか。", ek:"ここにくるまをとめてもいいですか。", eo:"여기 차 세워도 되나요?"},
+     itr:{w:"止まる", r:"とまる", k:"멈추다, 서다", e:"電車が急に止まりました。", ek:"でんしゃがきゅうにとまりました。", eo:"전철이 갑자기 멈췄어요."}},
+    {pair:true, hint:"〜える / 〜わる",
+     tr:{w:"変える", r:"かえる", k:"바꾸다", e:"約束の日を変えてもいいですか。", ek:"やくそくのひをかえてもいいですか。", eo:"약속 날짜를 바꿔도 될까요?"},
+     itr:{w:"変わる", r:"かわる", k:"바뀌다", e:"予定が急に変わりました。", ek:"よていがきゅうにかわりました。", eo:"일정이 갑자기 바뀌었어요."}},
+    {pair:true, hint:"〜める / 〜まる",
+     tr:{w:"決める", r:"きめる", k:"정하다", e:"明日までに決めます。", ek:"あしたまでにきめます。", eo:"내일까지 정하겠습니다."},
+     itr:{w:"決まる", r:"きまる", k:"정해지다", e:"場所はもう決まりましたか。", ek:"ばしょはもうきまりましたか。", eo:"장소는 정해졌나요?"}},
+    {pair:true, hint:"〜ける / 〜く",
+     tr:{w:"つける", r:"つける", k:"켜다", e:"暗いので電気をつけます。", ek:"くらいのででんきをつけます。", eo:"어두워서 불을 켭니다."},
+     itr:{w:"つく", r:"つく", k:"켜지다", e:"部屋の電気がついています。", ek:"へやのでんきがついています。", eo:"방 불이 켜져 있어요."}},
+    {pair:true, hint:"〜す / 〜える",
+     tr:{w:"消す", r:"けす", k:"끄다, 지우다", e:"出かける前に電気を消してください。", ek:"でかけるまえにでんきをけしてください。", eo:"나가기 전에 불을 꺼주세요."},
+     itr:{w:"消える", r:"きえる", k:"꺼지다, 사라지다", e:"急に電気が消えました。", ek:"きゅうにでんきがきえました。", eo:"갑자기 불이 꺼졌어요."}},
+    {pair:true, hint:"〜す / 〜れる",
+     tr:{w:"壊す", r:"こわす", k:"부수다, 망가뜨리다", e:"弟がおもちゃを壊しました。", ek:"おとうとがおもちゃをこわしました。", eo:"남동생이 장난감을 망가뜨렸어요."},
+     itr:{w:"壊れる", r:"こわれる", k:"고장 나다, 부서지다", e:"洗濯機が壊れてしまいました。", ek:"せんたくきがこわれてしまいました。", eo:"세탁기가 고장 나 버렸어요."}},
+    {pair:true, hint:"〜す / 〜る",
+     tr:{w:"直す", r:"なおす", k:"고치다", e:"自転車を直してもらいました。", ek:"じてんしゃをなおしてもらいました。", eo:"자전거를 고쳐 받았어요."},
+     itr:{w:"直る", r:"なおる", k:"고쳐지다, 낫다", e:"パソコンがまだ直りません。", ek:"パソコンがまだなおりません。", eo:"컴퓨터가 아직 안 고쳐져요."}},
+    {pair:true, hint:"〜る / 〜れる",
+     tr:{w:"割る", r:"わる", k:"깨다", e:"茶碗を割ってしまいました。", ek:"ちゃわんをわってしまいました。", eo:"밥그릇을 깨뜨렸어요."},
+     itr:{w:"割れる", r:"われる", k:"깨지다", e:"コップが割れています。", ek:"コップがわれています。", eo:"컵이 깨져 있어요."}}
+  ]
+},
+{
+  t:"형용사 활용 ④ い형용사 · な형용사",
+  kind:"grammar",
+  items:[
+    {cover:true, no:"형용사 활용 ④", t:"い형용사 · な형용사", sub:"두 종류, 겹치지 않는 규칙",
+     lead:"일본어 형용사는 두 종류다. い형용사는 자기 꼬리를 직접 바꾸고, な형용사는 자기는 가만히 있고 뒤에 붙는 말이 바뀐다. 이 하나를 못 가르면 문장 절반이 어색해진다.",
+     bullets:["둘을 가르는 법과 함정 (きれい · 嫌い)","네 형태 — 현재 · 부정 · 과거 · 과거 부정","「高いでした」가 없는 말인 이유","いい 하나만 불규칙","~고 잇기 / ~하게 / ~해지다"],
+     meta:"설명 14장 · 형용사 18개"},
+
+    {note:true, t:"왜 형용사에서 또 막히는가",
+     p:["한국어는 형용사가 한 종류다. 비싸다·비쌌다·비싸지 않다를 전부 같은 규칙으로 굴린다.",
+        "일본어는 두 종류고, 두 규칙이 서로 겹치지 않는다. 한쪽 규칙을 다른 쪽에 쓰면 그 자리에서 틀린 말이 된다.",
+        "게다가 동사 활용을 다 외운 뒤에도 형용사는 처음부터 다시 시작해야 한다. 동사 규칙과 아무 상관이 없다."],
+     rows:[["高い → 高かった","い형용사","자기가 바뀐다"],["静か → 静かでした","な형용사","뒤가 바뀐다"]]},
+
+    {note:true, t:"가르는 법 — 사전형의 마지막 글자",
+     p:["사전에 실린 모양이 い로 끝나면 い형용사, 그 밖은 전부 な형용사다. 이것이 기본 규칙이다.",
+        "高い · 安い · 美味しい · 忙しい는 전부 い형용사. 静か · 便利 · 有名 · 好き는 な형용사.",
+        "な형용사는 사전에 「静か」처럼 な 없이 실린다. な는 명사를 꾸밀 때만 나타나기 때문이다."],
+     rows:[["高い","い로 끝남","い형용사"],["静か","い가 아님","な형용사"]]},
+
+    {note:true, t:"함정 — い로 끝나는데 な형용사",
+     p:["규칙에 예외가 있다. い로 끝나는데도 な형용사인 말이 있고, 하필 자주 쓰는 것들이다. きれい와 嫌い가 대표다.",
+        "한자로 쓰면 이유가 보인다. 綺麗(きれい)의 い는 「麗」를 읽은 소리의 일부고, 嫌い(きらい)의 い도 어간에 붙어 있는 い다. 활용하는 い가 아니다.",
+        "그래서 「きれいでした」가 맞고 「きれかったです」는 아예 없는 말이다. 이 둘만 따로 외워두면 된다."],
+     rows:[["きれい","な형용사","きれいでした"],["嫌い","な형용사","嫌いでした"],["高い","い형용사","高かったです"]]},
+
+    {note:true, t:"い형용사 — 마지막 い를 떼고 갈아 끼운다",
+     p:["い형용사는 마지막 い가 활용의 손잡이다. 그 い를 떼고 다른 것을 붙인다.",
+        "부정은 「〜くない」, 과거는 「〜かった」, 과거 부정은 「〜くなかった」. 세 개뿐이라 외울 양은 적다.",
+        "정중하게 말하려면 그 뒤에 です를 그대로 붙이면 된다. 앞의 모양은 하나도 바뀌지 않는다."],
+     rows:[["高い","현재","비싸다"],["高くない","부정","비싸지 않다"],["高かった","과거","비쌌다"],["高くなかった","과거 부정","비싸지 않았다"]]},
+
+    {note:true, t:"함정 ① — 「高いでした」는 없다",
+     p:["가장 많이 나오는 실수다. 「高いです」를 과거로 만들려고 です만 でした로 바꾸는 것.",
+        "い형용사는 です가 과거로 가는 게 아니라 형용사 자체가 과거로 간다. です는 끝까지 です다.",
+        "부정도 마찬가지다. じゃない는 명사와 な형용사의 것이지 い형용사의 것이 아니다."],
+     rows:[["高いでした ✗","高かったです ○"],["高いじゃない ✗","高くない ○"],["寒いでした ✗","寒かったです ○"]]},
+
+    {note:true, t:"함정 ② — いい는 유일한 불규칙",
+     p:["いい(좋다)만은 규칙대로 굴리면 전부 틀린다. 활용할 때는 옛 모양인 よい로 돌아가기 때문이다.",
+        "「いくない ✗」「いかった ✗」가 아니라 「よくない」「よかった」다. 현재형만 いい를 쓴다.",
+        "いい가 들어간 말은 전부 같다. かっこいい → かっこよかった, ちょうどいい → ちょうどよかった."],
+     rows:[["いい","현재","좋다"],["よくない","부정","좋지 않다"],["よかった","과거","좋았다"],["よくなかった","과거 부정","좋지 않았다"]]},
+
+    {note:true, t:"な형용사 — 자기는 안 변한다",
+     p:["な형용사는 명사와 똑같이 굴린다. 「学生です → 学生でした」와 완전히 같은 방식이다.",
+        "静か 자체는 끝까지 静か로 남고, 뒤에 붙는 です · じゃない · でした만 바뀐다.",
+        "그래서 명사 활용을 알고 있다면 な형용사는 사실상 새로 외울 게 없다."],
+     rows:[["静かです","현재","조용하다"],["静かじゃないです","부정","조용하지 않다"],["静かでした","과거","조용했다"],["静かじゃなかったです","과거 부정","조용하지 않았다"]]},
+
+    {note:true, t:"명사를 꾸밀 때 — 이름이 여기서 나왔다",
+     p:["な형용사라는 이름은 명사를 꾸밀 때 な가 나타나기 때문에 붙었다. 평소에는 숨어 있다가 이때만 나온다.",
+        "「静かな部屋」, 「便利なアプリ」, 「好きな人」. な를 빠뜨리면 바로 어색해진다.",
+        "い형용사는 아무것도 붙이지 않고 그대로 얹는다. 「高い部屋」, 「新しい店」."],
+     rows:[["静か + 部屋","な를 넣고","静かな部屋"],["高い + 部屋","그대로","高い部屋"]]},
+
+    {note:true, t:"잇기 — 「~고」, 「~해서」",
+     p:["형용사를 둘 이어 말할 때도 규칙이 갈린다. い형용사는 い를 떼고 くて, な형용사는 그냥 で를 붙인다.",
+        "「安くて美味しい店」(싸고 맛있는 가게), 「便利で新しいアプリ」(편리하고 새로운 앱).",
+        "동사의 て형과 같은 자리에 오는 모양이다. 여기까지 오면 할 수 있는 말이 갑자기 길어진다."],
+     rows:[["安い + 美味しい","くて","安くて美味しい"],["便利 + 安い","で","便利で安い"],["いい (불규칙)","よくて","よくて安い"]]},
+
+    {note:true, t:"부사로 — 「~하게」",
+     p:["형용사를 동사 앞에 붙여 「~하게」로 만들 때도 두 갈래다. い형용사는 く, な형용사는 に.",
+        "「早く起きます」(일찍 일어납니다), 「静かに話してください」(조용히 말해 주세요).",
+        "초보가 자주 빠뜨리는 부분인데, 이걸 알면 쓸 수 있는 문장이 크게 늘어난다. 형용사가 동사를 꾸미게 되기 때문이다."],
+     rows:[["早い → 早く","い→く","早く起きる"],["静か → 静かに","な→に","静かに話す"],["上手 → 上手に","な→に","上手に作る"]]},
+
+    {note:true, t:"「~해지다」 — 변화를 말할 때",
+     p:["なる(되다)를 붙이면 「~해지다」가 된다. 이때도 앞의 형용사가 く / に로 바뀐다.",
+        "「寒くなりました」(추워졌습니다), 「元気になりました」(건강해졌습니다).",
+        "바로 앞 장의 부사 만들기와 완전히 같은 모양이다. 하나 익히면 둘이 같이 열린다."],
+     rows:[["寒い → 寒く","+なる","寒くなる"],["元気 → 元気に","+なる","元気になる"],["いい → よく","+なる","よくなる"]]},
+
+    {note:true, t:"반말 · 정중, 그리고 격식 있는 부정",
+     p:["반말은 활용형 그대로, 정중은 뒤에 です를 붙인다. 「高い / 高いです」, 「高くない / 高くないです」.",
+        "부정에는 더 격식 있는 모양이 하나 더 있다. 「高くありません」, 「静かではありません」.",
+        "말할 때는 〜ないです가 편하고, 글이나 공식적인 자리에서는 〜ありません 쪽을 본다. 뜻은 같으니 우선 하나만 골라 쓰면 된다."],
+     rows:[["高くないです","일상","안 비싸요"],["高くありません","격식","비싸지 않습니다"],["静かじゃないです","일상","안 조용해요"],["静かではありません","격식","조용하지 않습니다"]]},
+
+    {note:true, t:"자주 틀리는 것 모음",
+     p:["지금까지 나온 실수를 한 장에 모았다. 전부 규칙을 반대쪽에 잘못 쓴 경우다.",
+        "왼쪽이 눈에 익숙해 보인다면 그게 바로 위험 신호다."],
+     rows:[["高いでした ✗","高かったです ○"],["きれいかった ✗","きれいでした ○"],["いかった ✗","よかった ○"],["静か部屋 ✗","静かな部屋 ○"],["静かくない ✗","静かじゃない ○"],["早いに起きる ✗","早く起きる ○"]]},
+
+    {note:true, t:"외우는 요령",
+     p:["열여덟 개를 따로 외우지 않는다. 대표 두 개만 완전히 외운다. い형용사는 高い, な형용사는 静か.",
+        "새 형용사를 만나면 「이건 高い 쪽인가 静か 쪽인가」만 판단하고, 나머지는 외운 틀에 그대로 끼워 넣는다.",
+        "활용은 소리 내어 네 개를 한 묶음으로 굴린다. 「高い · 高くない · 高かった · 高くなかった」. 리듬으로 붙여두면 말할 때 바로 나온다.",
+        "다음 장부터 형용사 18개의 네 형태와 예문이 이어진다."]},
+
+    {adjc:true, w:"高い", r:"たかい", k:"비싸다, 높다", g:"い형용사", hit:"高いです",
+     forms:[["현재","高いです","たかいです"],["부정","高くないです","たかくないです"],["과거","高かったです","たかかったです"],["과거 부정","高くなかったです","たかくなかったです"]],
+     e:"この店は少し高いですが、美味しいです。", ek:"このみせはすこしたかいですが、おいしいです。", eo:"이 가게는 좀 비싸지만 맛있어요."},
+    {adjc:true, w:"安い", r:"やすい", k:"싸다", g:"い형용사", hit:"安いです",
+     forms:[["현재","安いです","やすいです"],["부정","安くないです","やすくないです"],["과거","安かったです","やすかったです"],["과거 부정","安くなかったです","やすくなかったです"]],
+     e:"駅前のスーパーが一番安いです。", ek:"えきまえのスーパーがいちばんやすいです。", eo:"역 앞 슈퍼가 제일 쌉니다."},
+    {adjc:true, w:"美味しい", r:"おいしい", k:"맛있다", g:"い형용사", hit:"美味しかったです",
+     forms:[["현재","美味しいです","おいしいです"],["부정","美味しくないです","おいしくないです"],["과거","美味しかったです","おいしかったです"],["과거 부정","美味しくなかったです","おいしくなかったです"]],
+     e:"昨日のラーメンは本当に美味しかったです。", ek:"きのうのラーメンはほんとうにおいしかったです。", eo:"어제 라멘은 정말 맛있었어요."},
+    {adjc:true, w:"忙しい", r:"いそがしい", k:"바쁘다", g:"い형용사",
+     forms:[["현재","忙しいです","いそがしいです"],["부정","忙しくないです","いそがしくないです"],["과거","忙しかったです","いそがしかったです"],["과거 부정","忙しくなかったです","いそがしくなかったです"]],
+     e:"今週は忙しくて、時間がありません。", ek:"こんしゅうはいそがしくて、じかんがありません。", eo:"이번 주는 바빠서 시간이 없어요."},
+    {adjc:true, w:"楽しい", r:"たのしい", k:"즐겁다", g:"い형용사", hit:"楽しかったです",
+     forms:[["현재","楽しいです","たのしいです"],["부정","楽しくないです","たのしくないです"],["과거","楽しかったです","たのしかったです"],["과거 부정","楽しくなかったです","たのしくなかったです"]],
+     e:"みんなで行った旅行はとても楽しかったです。", ek:"みんなでいったりょこうはとてもたのしかったです。", eo:"다 같이 간 여행은 아주 즐거웠어요."},
+    {adjc:true, w:"寒い", r:"さむい", k:"춥다", g:"い형용사", hit:"寒くなかったです",
+     forms:[["현재","寒いです","さむいです"],["부정","寒くないです","さむくないです"],["과거","寒かったです","さむかったです"],["과거 부정","寒くなかったです","さむくなかったです"]],
+     e:"今朝は思ったより寒くなかったです。", ek:"けさはおもったよりさむくなかったです。", eo:"오늘 아침은 생각보다 춥지 않았어요."},
+    {adjc:true, w:"難しい", r:"むずかしい", k:"어렵다", g:"い형용사", hit:"難しいです",
+     forms:[["현재","難しいです","むずかしいです"],["부정","難しくないです","むずかしくないです"],["과거","難しかったです","むずかしかったです"],["과거 부정","難しくなかったです","むずかしくなかったです"]],
+     e:"漢字は難しいですが、面白いです。", ek:"かんじはむずかしいですが、おもしろいです。", eo:"한자는 어렵지만 재미있어요."},
+    {adjc:true, w:"近い", r:"ちかい", k:"가깝다", g:"い형용사", hit:"近いです",
+     forms:[["현재","近いです","ちかいです"],["부정","近くないです","ちかくないです"],["과거","近かったです","ちかかったです"],["과거 부정","近くなかったです","ちかくなかったです"]],
+     e:"家から駅までとても近いです。", ek:"いえからえきまでとてもちかいです。", eo:"집에서 역까지 아주 가까워요."},
+    {adjc:true, w:"新しい", r:"あたらしい", k:"새롭다", g:"い형용사",
+     forms:[["현재","新しいです","あたらしいです"],["부정","新しくないです","あたらしくないです"],["과거","新しかったです","あたらしかったです"],["과거 부정","新しくなかったです","あたらしくなかったです"]],
+     e:"新しいパソコンが欲しいです。", ek:"あたらしいパソコンがほしいです。", eo:"새 컴퓨터를 갖고 싶어요."},
+    {adjc:true, w:"いい", r:"いい", k:"좋다", g:"い형용사 (불규칙)", hit:"よかったです",
+     forms:[["현재","いいです","いいです"],["부정","よくないです","よくないです"],["과거","よかったです","よかったです"],["과거 부정","よくなかったです","よくなかったです"]],
+     e:"天気がよかったので、公園を散歩しました。", ek:"てんきがよかったので、こうえんをさんぽしました。", eo:"날씨가 좋아서 공원을 산책했어요."},
+
+    {adjc:true, w:"静か", r:"しずか", k:"조용하다", g:"な형용사", hit:"静かです",
+     forms:[["현재","静かです","しずかです"],["부정","静かじゃないです","しずかじゃないです"],["과거","静かでした","しずかでした"],["과거 부정","静かじゃなかったです","しずかじゃなかったです"]],
+     e:"この図書館はいつも静かです。", ek:"このとしょかんはいつもしずかです。", eo:"이 도서관은 항상 조용해요."},
+    {adjc:true, w:"便利", r:"べんり", k:"편리하다", g:"な형용사", hit:"便利でした",
+     forms:[["현재","便利です","べんりです"],["부정","便利じゃないです","べんりじゃないです"],["과거","便利でした","べんりでした"],["과거 부정","便利じゃなかったです","べんりじゃなかったです"]],
+     e:"このアプリは思ったより便利でした。", ek:"このアプリはおもったよりべんりでした。", eo:"이 앱은 생각보다 편리했어요."},
+    {adjc:true, w:"好き", r:"すき", k:"좋아하다", g:"な형용사", hit:"好きじゃないです",
+     forms:[["현재","好きです","すきです"],["부정","好きじゃないです","すきじゃないです"],["과거","好きでした","すきでした"],["과거 부정","好きじゃなかったです","すきじゃなかったです"]],
+     e:"甘いものはあまり好きじゃないです。", ek:"あまいものはあまりすきじゃないです。", eo:"단 건 별로 좋아하지 않아요."},
+    {adjc:true, w:"嫌い", r:"きらい", k:"싫어하다", g:"な형용사 (함정)", hit:"嫌いじゃないです",
+     forms:[["현재","嫌いです","きらいです"],["부정","嫌いじゃないです","きらいじゃないです"],["과거","嫌いでした","きらいでした"],["과거 부정","嫌いじゃなかったです","きらいじゃなかったです"]],
+     e:"納豆は嫌いじゃないですが、あまり食べません。", ek:"なっとうはきらいじゃないですが、あまりたべません。", eo:"낫토는 싫어하지 않지만 별로 안 먹어요."},
+    {adjc:true, w:"きれい", r:"きれい", k:"예쁘다, 깨끗하다", g:"な형용사 (함정)",
+     forms:[["현재","きれいです","きれいです"],["부정","きれいじゃないです","きれいじゃないです"],["과거","きれいでした","きれいでした"],["과거 부정","きれいじゃなかったです","きれいじゃなかったです"]],
+     e:"部屋をきれいに掃除しました。", ek:"へやをきれいにそうじしました。", eo:"방을 깨끗하게 청소했어요."},
+    {adjc:true, w:"元気", r:"げんき", k:"건강하다, 잘 지내다", g:"な형용사",
+     forms:[["현재","元気です","げんきです"],["부정","元気じゃないです","げんきじゃないです"],["과거","元気でした","げんきでした"],["과거 부정","元気じゃなかったです","げんきじゃなかったです"]],
+     e:"おかげさまで元気になりました。", ek:"おかげさまでげんきになりました。", eo:"덕분에 건강해졌어요."},
+    {adjc:true, w:"有名", r:"ゆうめい", k:"유명하다", g:"な형용사", hit:"有名です",
+     forms:[["현재","有名です","ゆうめいです"],["부정","有名じゃないです","ゆうめいじゃないです"],["과거","有名でした","ゆうめいでした"],["과거 부정","有名じゃなかったです","ゆうめいじゃなかったです"]],
+     e:"この店はラーメンで有名です。", ek:"このみせはラーメンでゆうめいです。", eo:"이 가게는 라멘으로 유명해요."},
+    {adjc:true, w:"大変", r:"たいへん", k:"힘들다, 큰일이다", g:"な형용사", hit:"大変でした",
+     forms:[["현재","大変です","たいへんです"],["부정","大変じゃないです","たいへんじゃないです"],["과거","大変でした","たいへんでした"],["과거 부정","大変じゃなかったです","たいへんじゃなかったです"]],
+     e:"引っ越しは思ったより大変でした。", ek:"ひっこしはおもったよりたいへんでした。", eo:"이사는 생각보다 힘들었어요."}
+  ]
+}
+];
+
+/* ============================================================
+   단어 목록 평탄화
+   ============================================================ */
+// key는 단어 자체로 만든다. 단어를 추가하거나 순서를 바꿔도
+// 책갈피와 읽던 위치가 어긋나지 않도록 하기 위함.
+// 화면에 찍히는 단어 번호(001~902)는 '진짜 단어'만 센다.
+// 표지·설명·활용 카드가 섞여도 번호가 밀리지 않도록.
+const WORDS = [];
+let wordNo = 0;
+DATA.forEach((sec, si) => sec.items.forEach((it, j) => {
+  const plain = !it.cover && !it.note && !it.conj && !it.pair && !it.adjc;
+  if(plain) wordNo++;
+  // 활용 카드는 강의마다 같은 동사가 다시 나온다 (買う가 〜たい에도 〜て형에도 있음).
+  // 그래서 목표 형태(say)까지 넣어야 key가 갈린다. 안 그러면 예문 캐시와 책갈피가 섞인다.
+  const key = it.cover ? 'cover|' + si
+            : it.note ? 'note|' + si + '|' + j
+            : it.pair ? 'pair|' + it.tr.w + '|' + it.itr.w
+            : it.adjc ? 'adjc|' + it.w + '|' + it.r
+            : it.conj ? 'conj|' + it.w + '|' + it.say
+            : it.w + '|' + it.r;
+  WORDS.push({...it, si, sec:sec.t, kind:sec.kind || 'word', key, n:plain ? wordNo : null});
+}));
+
+const SEC_INFO = DATA.map((sec, si) => {
+  const items = WORDS.filter(w => w.si === si);
+  const plains = items.filter(w => w.n !== null);
+  return {title:sec.t,
+          first:WORDS.findIndex(w => w.si === si),
+          kind:sec.kind || 'word',
+          count:items.filter(w => !w.cover).length,   // 표지는 항목 수에서 뺀다
+          from:plains.length ? plains[0].n : null,
+          to:plains.length ? plains[plains.length - 1].n : null};
+});
+
+/* ============================================================
+   저장 상태  (위치는 '쪽번호'가 아니라 '단어 번호'로 저장한다.
+   창 크기에 따라 쪽 나눔이 달라지기 때문)
+   ============================================================ */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+// 저장은 단어 key로, 화면 안에서는 번호로 다룬다.
+const markedKeys = new Set(store.get('kangi-bookmarks', []));
+const marks = new Set();
+WORDS.forEach((w, i) => { if(markedKeys.has(w.key)) marks.add(i); });
+const saveMarks = () => store.set('kangi-bookmarks', [...marks].map(i => WORDS[i].key));
+
+// 「단어」와 「문법」은 각각 별개의 책처럼 다룬다.
+// 목차·쪽수·읽던 위치가 모드마다 따로 유지된다.
+let mode = store.get('kangi-mode', 'word');
+if(mode !== 'word' && mode !== 'grammar') mode = 'word';
+
+let anchor = 0;
+function loadAnchor(){
+  anchor = WORDS.findIndex(w => w.kind === mode);
+  if(anchor < 0) anchor = 0;
+  const savedKey = store.get('kangi-anchor-' + mode, null);
+  if(savedKey){
+    const i = WORDS.findIndex(w => w.key === savedKey && w.kind === mode);
+    if(i >= 0) anchor = i;
+  }
+}
+loadAnchor();
+
+/* ============================================================
+   조각 렌더링
+   ============================================================ */
+const ICON = {
+  spk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>',
+  mark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const spkBtn = t => '<button class="ibtn spk" type="button" data-say="' + esc(t) + '" aria-label="발음 듣기">' + ICON.spk + '</button>';
+const breakHTML = sec => '<div class="sec-break">' + esc(sec) + '</div>';
+
+/* ============================================================
+   한자 ↔ 읽기 짝짓기
+
+   예문은 한자 문장(e)과 히라가나 문장(ek)을 둘 다 갖고 있다.
+   한자가 아닌 부분(가나·기호)은 양쪽에 똑같이 나타나므로,
+   그 부분을 기준점 삼아 사이 구간을 한자 덩어리의 읽기로 본다.
+
+     毎朝七時に起きます。
+     まいあさしちじにおきます。
+     → 「に」와 「きます。」를 기준점으로 잡으면
+       毎朝七時 = まいあさしちじ, 起 = お
+
+   덩어리 단위로만 나눈다. 毎朝七時를 한 글자씩 쪼개려면 사전이 필요한데
+   그건 없으니, 정직하게 덩어리째 보여준다.
+   어긋나면 null을 돌려주고 그 예문은 그냥 평문으로 그린다.
+   ============================================================ */
+const isKanji = ch => /[々〇㐀-䶿一-鿿]/.test(ch);
+
+function alignRuby(text, kana){
+  if(!text || !kana) return null;
+  const chunks = [];
+  let buf = '', mode = null;
+  for(const ch of text){
+    const m = isKanji(ch) ? 'k' : 'p';
+    if(m !== mode){ if(buf) chunks.push({t:buf, k:mode === 'k'}); buf = ch; mode = m; }
+    else buf += ch;
+  }
+  if(buf) chunks.push({t:buf, k:mode === 'k'});
+
+  const out = [];
+  let pos = 0;
+  for(let i = 0; i < chunks.length; i++){
+    const c = chunks[i];
+    if(!c.k){
+      if(kana.indexOf(c.t, pos) !== pos) return null;
+      out.push({t:c.t, r:null});
+      pos += c.t.length;
+    }else{
+      const next = chunks[i + 1];
+      let end;
+      if(!next) end = kana.length;
+      else {
+        end = kana.indexOf(next.t, pos + 1);   // 읽기는 최소 한 글자
+        if(end < 0) return null;
+      }
+      if(end <= pos) return null;
+      out.push({t:c.t, r:kana.slice(pos, end)});
+      pos = end;
+    }
+  }
+  return pos === kana.length ? out : null;
+}
+
+// 예문 한 덩어리. 한자에는 읽기를, 가나 줄에는 같은 번호를 붙여 짝을 만든다.
+// 결과는 단어마다 고정이라 캐시한다 — 창 크기가 바뀔 때마다 900번씩 다시 계산할 이유가 없다.
+//
+// 쪽 나눔을 잴 때(measuring)는 스팬 없는 평문으로 그린다.
+// 스팬은 인라인이고 여백이 없어 높이에 영향을 주지 않는다 (928개 전수 비교로 확인).
+// 측정용 DOM이 가벼워져 재분할이 빨라진다.
+let measuring = false;
+const exCache = new Map();
+function exHTML(item, keyOverride){
+  const ck = (measuring ? 'm|' : 'v|') + (keyOverride || item.key);
+  const hit = exCache.get(ck);
+  if(hit) return hit;
+  const html = buildEx(item, measuring);
+  exCache.set(ck, html);
+  return html;
+}
+
+function buildEx(item, plain){
+  const parts = plain ? null : alignRuby(item.e, item.ek);
+  let jp, kn;
+  if(!parts){
+    jp = esc(item.e); kn = esc(item.ek);
+  }else{
+    jp = ''; kn = '';
+    let n = 0;
+    for(const p of parts){
+      if(p.r === null){ jp += esc(p.t); kn += esc(p.t); }
+      else{
+        jp += '<span class="kj" data-k="' + n + '" data-r="' + esc(p.r) + '">' + esc(p.t) + '</span>';
+        kn += '<span class="kr" data-k="' + n + '">' + esc(p.r) + '</span>';
+        n++;
+      }
+    }
+  }
+  return '<div class="ex">' +
+    '<div class="ex-jp jp">' + spkBtn(item.e) + '<span>' + jp + '</span></div>' +
+    '<div class="ex-kana jp">' + kn + '</div>' +
+    '<div class="ex-ko">' + esc(item.eo) + '</div>' +
+  '</div>';
+}
+
+// 표지 — 강의 시작. 반드시 한 쪽을 통째로 쓴다.
+function coverHTML(item){
+  const info = SEC_INFO[item.si] || {};
+  // 문법 표지는 sub/meta를 직접 적고, 단어 표지는 섹션에서 계산한다
+  const sub  = item.sub  || (info.from ? info.count + '단어 · ' + info.from + '–' + info.to + '번' : '');
+  const meta = item.meta || '';
+  const body = item.bullets
+    ? '<ul class="cv-list">' + item.bullets.map(b => '<li>' + esc(b) + '</li>').join('') + '</ul>'
+    : item.peek
+    ? '<div class="cv-peek jp">' + item.peek.map(w => '<span>' + esc(w) + '</span>').join('') + '</div>'
+    : '';
+  return '<article class="entry cover">' +
+    '<div class="cv-no">' + esc(item.no) + '</div>' +
+    '<h2 class="cv-t jp">' + esc(item.t) + '</h2>' +
+    (sub ? '<div class="cv-sub">' + esc(sub) + '</div>' : '') +
+    '<div class="cv-rule"></div>' +
+    '<p class="cv-lead">' + esc(item.lead) + '</p>' +
+    body +
+    (meta ? '<div class="cv-meta">' + esc(meta) + '</div>' : '') +
+  '</article>';
+}
+
+// 짝 카드 — 타동사와 자동사를 나란히
+function pairHTML(item, idx){
+  const on = marks.has(idx);
+  const side = (v, cls, label, ck) =>
+    '<div class="prow">' +
+      '<span class="ptag ' + cls + '">' + label + '</span>' +
+      '<div class="pmain">' +
+        '<div class="pline">' +
+          '<b class="jp">' + esc(v.w) + '</b>' +
+          '<span class="read jp">' + esc(v.r) + '</span>' +
+          '<span class="mean-inline">' + esc(v.k) + '</span>' +
+          spkBtn(v.r) +
+        '</div>' +
+        exHTML(v, ck) +
+      '</div>' +
+    '</div>';
+  return '<article class="entry pair' + (on ? ' marked' : '') + '" data-i="' + idx + '">' +
+    '<div class="e-head">' +
+      '<span class="word jp">' + esc(item.tr.w) + '</span>' +
+      '<span class="p-arrow">↔</span>' +
+      '<span class="word jp">' + esc(item.itr.w) + '</span>' +
+      (item.hint ? '<span class="pos">' + esc(item.hint) + '</span>' : '') +
+      '<button class="ibtn mark' + (on ? ' on' : '') + '" type="button" data-mark="' + idx + '" ' +
+        'aria-pressed="' + on + '" aria-label="책갈피">' + ICON.mark + '</button>' +
+    '</div>' +
+    side(item.tr,  'tr',  '타', item.key + '|tr') +
+    side(item.itr, 'itr', '자', item.key + '|itr') +
+  '</article>';
+}
+
+// 설명 카드 — 문법 개념
+function noteHTML(item){
+  const rows = (item.rows || []).map(r =>
+    '<div class="nrow">' + r.map((c, i) =>
+      '<span class="ncell' + (i === r.length - 1 ? ' last' : '') + ' jp">' + esc(c) + '</span>'
+    ).join('<span class="narrow">→</span>') + '</div>').join('');
+  return '<article class="entry note">' +
+    '<h3 class="note-t">' + esc(item.t) + '</h3>' +
+    item.p.map(t => '<p class="note-p">' + esc(t) + '</p>').join('') +
+    (rows ? '<div class="nrows">' + rows + '</div>' : '') +
+  '</article>';
+}
+
+// 활용 카드 — 기본형 → ます형 → たい형
+function conjHTML(item, idx){
+  const on = marks.has(idx);
+  return '<article class="entry conj' + (on ? ' marked' : '') + '" data-i="' + idx + '">' +
+    '<div class="e-head">' +
+      '<span class="word jp">' + esc(item.w) + '</span>' +
+      '<span class="read jp">' + esc(item.r) + '</span>' +
+      '<span class="mean-inline">' + esc(item.k) + '</span>' +
+      '<span class="pos">' + esc(item.g) + '</span>' +
+      '<button class="ibtn mark' + (on ? ' on' : '') + '" type="button" data-mark="' + idx + '" ' +
+        'aria-pressed="' + on + '" aria-label="책갈피">' + ICON.mark + '</button>' +
+    '</div>' +
+    '<div class="chain">' +
+      item.steps.map((s, n) =>
+        '<span class="step' + (n === item.steps.length - 1 ? ' hit' : '') + '">' +
+          '<b class="jp">' + esc(s.t) + '</b><em>' + esc(s.l) + '</em></span>'
+      ).join('<span class="carrow">→</span>') +
+      spkBtn(item.say) +
+    '</div>' +
+    exHTML(item) +
+  '</article>';
+}
+
+// 형용사 활용 카드 — 네 형태를 한 판에
+// 동사 활용 카드(chain)는 '기본형 → 중간형 → 완성형'이라 화살표가 맞지만,
+// 형용사의 네 형태는 서로 유도되는 게 아니라 나란히 놓인 선택지다. 그래서 표로 깐다.
+function adjcHTML(item, idx){
+  const on = marks.has(idx);
+  const showRead = item.r && item.r !== item.w;
+  return '<article class="entry adjc' + (on ? ' marked' : '') + '" data-i="' + idx + '">' +
+    '<div class="e-head">' +
+      '<span class="word jp">' + esc(item.w) + '</span>' +
+      (showRead ? '<span class="read jp">' + esc(item.r) + '</span>' : '') +
+      '<span class="mean-inline">' + esc(item.k) + '</span>' +
+      '<span class="pos">' + esc(item.g) + '</span>' +
+      '<button class="ibtn mark' + (on ? ' on' : '') + '" type="button" data-mark="' + idx + '" ' +
+        'aria-pressed="' + on + '" aria-label="책갈피">' + ICON.mark + '</button>' +
+    '</div>' +
+    '<div class="fgrid">' +
+      item.forms.map(f =>
+        '<div class="fcell' + (f[1] === item.hit ? ' hit' : '') + '">' +
+          '<div class="ftxt">' +
+            '<em>' + esc(f[0]) + '</em>' +
+            '<b class="jp">' + esc(f[1]) + '</b>' +
+            '<span class="fr jp">' + esc(f[2]) + '</span>' +
+          '</div>' + spkBtn(f[2]) +
+        '</div>').join('') +
+    '</div>' +
+    exHTML(item) +
+  '</article>';
+}
+
+function entryHTML(item, idx){
+  if(item.cover) return coverHTML(item);
+  if(item.note) return noteHTML(item);
+  if(item.pair) return pairHTML(item, idx);
+  if(item.adjc) return adjcHTML(item, idx);
+  if(item.conj) return conjHTML(item, idx);
+  const on = marks.has(idx);
+  const showRead = item.r && item.r !== item.w;
+  return '<article class="entry' + (on ? ' marked' : '') + '" data-i="' + idx + '">' +
+    '<div class="e-head">' +
+      '<span class="num">' + String(item.n).padStart(3,'0') + '</span>' +
+      '<span class="word jp">' + esc(item.w) + '</span>' +
+      (showRead ? '<span class="read jp">' + esc(item.r) + '</span>' : '') +
+      spkBtn(item.r || item.w) +
+      '<span class="pos">' + esc(item.p) + '</span>' +
+      '<button class="ibtn mark' + (on ? ' on' : '') + '" type="button" data-mark="' + idx + '" ' +
+        'aria-pressed="' + on + '" aria-label="책갈피">' + ICON.mark + '</button>' +
+    '</div>' +
+    '<div class="mean">' + esc(item.k) + '</div>' +
+    exHTML(item) +
+  '</article>';
+}
+
+/* ============================================================
+   화면 높이에 맞춰 쪽 나누기 — 스크롤이 생기지 않도록
+   빈 페이지 틀을 먼저 깔아 실제 폭·높이를 잰 뒤,
+   같은 폭에서 항목 높이를 측정해 넘치기 직전까지만 담는다.
+   ============================================================ */
+const spreadEl = document.getElementById('spread');
+// 폭이 넉넉하면 두 쪽 펼침. 기준을 700으로 둔 이유:
+//  - 폰 가로(844×390)에서 한 면만 쓰면 넓은 화면에 단어 하나만 남아 낭비된다
+//  - 태블릿 세로(820)에서 한 면이면 한 줄이 100자를 넘어 읽기 나쁘다
+// 두 쪽이면 한 면이 320px 이상 확보돼 줄 길이가 적당해진다.
+const isSpread = () => window.innerWidth >= 700;
+
+let PAGES = [];    // [[단어번호, ...], ...]
+let PAGE_OF = [];  // 단어번호 -> 쪽 인덱스
+let PAGE_TALL = new Set();   // 항목이 쪽보다 커서 스크롤을 열어야 하는 쪽
+let cur = 0;       // 현재 쪽 인덱스
+
+const shellHTML = '<div class="page"><div class="running"><b>&nbsp;</b></div>' +
+                  '<div class="page-body"></div><div class="folio">&nbsp;</div></div>';
+
+function paginate(){
+  // 펼침면일 때는 빈 틀도 두 쪽을 깔아야 한다.
+  // 한 쪽만 깔면 전체 폭에서 재게 되는데, 실제로는 절반 폭으로 그려져
+  // 줄바꿈이 늘고 내용이 넘친다.
+  spreadEl.innerHTML = isSpread() ? shellHTML + shellHTML : shellHTML;
+  const pb = spreadEl.querySelector('.page-body');
+  const cs = getComputedStyle(pb);
+  const avail = pb.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 4;
+
+  // 현재 모드의 항목만 대상으로 한다
+  const list = [];
+  WORDS.forEach((w, i) => { if(w.kind === mode) list.push(i); });
+
+  // 실제 페이지 폭 안에서 높이 측정
+  measuring = true;
+  const probe = document.createElement('div');
+  probe.innerHTML = breakHTML('측정') + list.map(i => entryHTML(WORDS[i], i)).join('');
+  measuring = false;
+  pb.appendChild(probe);
+
+  const kids = probe.children;
+  const bs = getComputedStyle(kids[0]);
+  const breakH = kids[0].offsetHeight + parseFloat(bs.marginTop) + parseFloat(bs.marginBottom);
+  const H = {};
+  list.forEach((gi, n) => { H[gi] = kids[n + 1].offsetHeight; });
+  probe.remove();
+
+  PAGES = [];
+  const tooTall = new Set();
+  let page = [], h = 0;
+  for(const i of list){
+    if(H[i] > avail) tooTall.add(i);
+    // 표지는 한 쪽을 통째로 쓴다 — 앞의 쪽을 끊고, 혼자 한 쪽을 차지한 뒤 새로 시작
+    if(WORDS[i].cover){
+      if(page.length) PAGES.push(page);
+      PAGES.push([i]);
+      page = []; h = 0;
+      continue;
+    }
+    const needBreak = page.length > 0 && WORDS[i].sec !== WORDS[page[page.length - 1]].sec;
+    const add = H[i] + (needBreak ? breakH : 0);
+    if(page.length && h + add > avail){          // 넘치면 새 쪽으로
+      PAGES.push(page); page = [i]; h = H[i];
+    }else{
+      page.push(i); h += add;
+    }
+  }
+  if(page.length) PAGES.push(page);
+
+  PAGE_OF = [];
+  PAGE_TALL = new Set();
+  PAGES.forEach((p, pi) => {
+    p.forEach(i => PAGE_OF[i] = pi);
+    if(p.length === 1 && tooTall.has(p[0])) PAGE_TALL.add(pi);
+  });
+  cur = PAGE_OF[anchor] !== undefined ? PAGE_OF[anchor] : 0;
+}
+
+function setMode(m){
+  if(m === mode) return;
+  mode = m;
+  store.set('kangi-mode', m);
+  document.querySelectorAll('.mbtn').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  loadAnchor();
+  relayout();
+  if(drawer.classList.contains('open') && currentTab === 'toc') renderDrawer();
+}
+
+/* ============================================================
+   쪽 그리기
+   ============================================================ */
+function pageHTML(p){
+  const idxs = PAGES[p];
+  let body = '', prevSec = null;
+  idxs.forEach((i, j) => {
+    const w = WORDS[i];
+    if(j > 0 && w.sec !== prevSec) body += breakHTML(w.sec);
+    prevSec = w.sec;
+    body += entryHTML(w, i);
+  });
+  const head = WORDS[idxs[0]];
+  const isCover = idxs.length === 1 && head.cover;
+  const nums = idxs.map(i => WORDS[i].n).filter(n => n !== null);
+  const range = (head.kind === 'grammar' || !nums.length) ? ''
+    : nums[0] + '–' + nums[nums.length - 1];
+  // 표지 쪽은 러닝헤드를 뺀다 — 제목이 이미 크게 있으니 중복이다
+  const running = isCover ? ''
+    : '<div class="running"><b>' + esc(head.sec) + '</b>' +
+      '<span class="range">' + range + '</span></div>';
+  return '<div class="page" data-page="' + p + '">' + running +
+    '<div class="page-body' + (isCover ? ' cover-page' : '') +
+      (PAGE_TALL.has(p) ? ' scrollable' : '') + '">' + body + '</div>' +
+    '<div class="folio">' + (p + 1) + '</div>' +
+  '</div>';
+}
+
+function render(){
+  const two = isSpread();
+  const last = PAGES.length - 1;
+  cur = Math.min(Math.max(cur, 0), last);
+  const start = two ? (cur - (cur % 2)) : cur;
+
+  let html = pageHTML(start);
+  if(two && start + 1 <= last) html += pageHTML(start + 1);
+  spreadEl.innerHTML = html;
+
+  const shown = (two && start + 1 <= last) ? (start + 1) + '–' + (start + 2) : String(start + 1);
+  document.getElementById('pageno').innerHTML = '<b>' + shown + '</b> / ' + PAGES.length;
+  document.getElementById('prev').disabled = start === 0;
+  document.getElementById('next').disabled = two ? (start + 2 > last) : (cur === last);
+
+  anchor = PAGES[start][0];
+  store.set('kangi-anchor-' + mode, WORDS[anchor].key);
+}
+
+function relayout(){ paginate(); render(); }
+
+function goTo(p, focusIdx){
+  cur = Math.min(Math.max(p, 0), PAGES.length - 1);
+  render();
+  if(focusIdx !== undefined){
+    const el = spreadEl.querySelector('.entry[data-i="' + focusIdx + '"]');
+    if(el){
+      el.classList.add('flash');
+      setTimeout(() => el.classList.remove('flash'), 1600);
+    }
+  }
+}
+function step(dir){
+  const two = isSpread();
+  const start = two ? (cur - (cur % 2)) : cur;
+  goTo(start + dir * (two ? 2 : 1));
+}
+
+relayout();
+
+/* ============================================================
+   상호작용 — 페이지
+   ============================================================ */
+document.getElementById('prev').addEventListener('click', () => step(-1));
+document.getElementById('next').addEventListener('click', () => step(1));
+
+document.querySelector('.modes').addEventListener('click', e => {
+  const b = e.target.closest('.mbtn');
+  if(b) setMode(b.dataset.mode);
+});
+document.querySelectorAll('.mbtn').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+
+// 크기가 바뀌면 한 쪽에 들어갈 수 있는 단어 수도 바뀌므로 다시 나눈다.
+// iframe 안(Artifact 등)에서는 창 resize 이벤트가 오지 않으므로 ResizeObserver로 관찰한다.
+const stage = document.querySelector('.stage');
+let resizeTimer = null, lastW = 0, lastH = 0;
+function onResize(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const w = Math.round(stage.clientWidth), h = Math.round(stage.clientHeight);
+    if(w === lastW && h === lastH) return;
+    lastW = w; lastH = h;
+    relayout();
+  }, 180);
+}
+lastW = Math.round(stage.clientWidth);
+lastH = Math.round(stage.clientHeight);
+if(window.ResizeObserver) new ResizeObserver(onResize).observe(stage);
+window.addEventListener('resize', onResize);
+
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if(e.key === 'Escape'){ closeDrawer(); return; }
+  if(e.key === '/'){ document.getElementById('searchBtn').click(); e.preventDefault(); return; }
+  if(e.key === 'ArrowLeft'){ step(-1); e.preventDefault(); }
+  if(e.key === 'ArrowRight'){ step(1); e.preventDefault(); }
+});
+
+let tx = 0, ty = 0;
+spreadEl.addEventListener('touchstart', e => { tx = e.changedTouches[0].clientX; ty = e.changedTouches[0].clientY; }, {passive:true});
+spreadEl.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+  if(Math.abs(dx) > 60 && Math.abs(dy) < 50) step(dx < 0 ? 1 : -1);
+}, {passive:true});
+
+/* ============================================================
+   상호작용 — 발음 / 책갈피
+   ============================================================ */
+/* 한자에 올리면 아래 가나 줄의 같은 부분을 함께 밝힌다 */
+function litKana(kj, on){
+  const entry = kj.closest('.entry');
+  if(!entry) return;
+  entry.querySelectorAll('.kr[data-k="' + kj.dataset.k + '"]')
+       .forEach(x => x.classList.toggle('lit', on));
+}
+spreadEl.addEventListener('mouseover', e => {
+  const kj = e.target.closest('.kj');
+  if(kj) litKana(kj, true);
+});
+spreadEl.addEventListener('mouseout', e => {
+  const kj = e.target.closest('.kj');
+  if(kj && !kj.classList.contains('on')) litKana(kj, false);
+});
+
+// 터치 기기에는 hover가 없으므로 눌러서 켜고 끈다
+function clearPinned(except){
+  spreadEl.querySelectorAll('.kj.on').forEach(k => {
+    if(k === except) return;
+    k.classList.remove('on');
+    litKana(k, false);
+  });
+}
+
+spreadEl.addEventListener('click', e => {
+  const kj = e.target.closest('.kj');
+  if(kj){
+    const on = !kj.classList.contains('on');
+    clearPinned(kj);
+    kj.classList.toggle('on', on);
+    litKana(kj, on);
+    return;
+  }
+  clearPinned(null);
+
+  const spk = e.target.closest('.spk');
+  if(spk){ speak(spk.dataset.say, spk); return; }
+
+  const mk = e.target.closest('.mark');
+  if(mk){
+    const i = Number(mk.dataset.mark);
+    const on = !marks.has(i);
+    if(on) marks.add(i); else marks.delete(i);
+    saveMarks();
+    mk.classList.toggle('on', on);
+    mk.setAttribute('aria-pressed', String(on));
+    mk.closest('.entry').classList.toggle('marked', on);
+    if(currentTab === 'marks') renderDrawer();
+  }
+});
+
+/* ============================================================
+   음성
+   ============================================================ */
+const synth = window.speechSynthesis;
+const warnEl = document.getElementById('voiceWarn');
+let jaVoice = null, playingBtn = null;
+
+function showWarn(html){ warnEl.innerHTML = html; warnEl.classList.remove('hidden'); }
+
+function pickVoice(){
+  if(!synth) return;
+  const v = synth.getVoices();
+  if(!v.length) return;
+  const ja = v.filter(x => (x.lang || '').toLowerCase().startsWith('ja'));
+  if(ja.length){
+    jaVoice = ja.find(x => x.localService) || ja[0];
+    warnEl.classList.add('hidden');
+  }else{
+    showWarn('이 기기에 <b>일본어 음성</b>이 없어 발음이 어색할 수 있습니다. Windows에서는 ' +
+             '<b>설정 → 시간 및 언어 → 언어 → 일본어 추가(음성 팩 포함)</b>를 설치하세요.');
+  }
+}
+if(synth){
+  pickVoice();
+  synth.addEventListener('voiceschanged', pickVoice);
+  setTimeout(pickVoice, 400);
+  setTimeout(pickVoice, 1500);
+}else{
+  showWarn('이 브라우저는 발음 재생(Web Speech API)을 지원하지 않습니다. Chrome 또는 Edge에서 열어주세요.');
+}
+
+const rateEl = document.getElementById('rate');
+const rateVal = document.getElementById('rateVal');
+const savedRate = store.get('kangi-rate', null);
+if(savedRate){ rateEl.value = savedRate; }
+rateVal.textContent = Number(rateEl.value).toFixed(2);
+rateEl.addEventListener('input', () => {
+  rateVal.textContent = Number(rateEl.value).toFixed(2);
+  store.set('kangi-rate', rateEl.value);
+});
+
+function clearPlaying(){
+  if(playingBtn){ playingBtn.classList.remove('playing'); playingBtn = null; }
+}
+function speak(text, btn){
+  if(!synth) return;
+  const same = (playingBtn === btn);
+  synth.cancel();
+  clearPlaying();
+  if(same) return;
+
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP';
+  if(jaVoice) u.voice = jaVoice;
+  u.rate = Number(rateEl.value);
+  u.onend = clearPlaying;
+  u.onerror = ev => {
+    clearPlaying();
+    if(ev.error === 'interrupted' || ev.error === 'canceled') return;
+    showWarn(jaVoice && !jaVoice.localService
+      ? '지금 쓰는 일본어 음성(<b>' + esc(jaVoice.name) + '</b>)은 <b>인터넷 연결이 필요한</b> 음성입니다. ' +
+        '연결을 확인하거나, Windows <b>설정 → 시간 및 언어 → 언어 → 일본어 추가(음성 팩 포함)</b>를 설치하면 오프라인에서도 재생됩니다.'
+      : '발음을 재생하지 못했습니다. 새로고침한 뒤 다시 눌러보세요.');
+  };
+  btn.classList.add('playing');
+  playingBtn = btn;
+  synth.speak(u);
+}
+window.addEventListener('pagehide', () => { if(synth) synth.cancel(); });
+
+/* ============================================================
+   서랍 — 목차 / 책갈피
+   ============================================================ */
+const drawer = document.getElementById('drawer');
+const scrim = document.getElementById('scrim');
+const drawerBody = document.getElementById('drawerBody');
+let currentTab = 'toc';
+
+/* ---- 검색 ----
+   가타카나는 히라가나로 맞춰서 비교한다. 「サッカー」를 「さっかー」로 쳐도 찾히도록. */
+const kataToHira = s => s.replace(/[ァ-ヶ]/g,
+  c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const norm = s => kataToHira(String(s || '').toLowerCase()).replace(/[\s·・、。！？]/g, '');
+
+// 검색 대상: 단어 카드와 활용 카드. 설명 카드는 제외.
+const SEARCH = [];
+WORDS.forEach((w, i) => {
+  if(w.note || w.cover) return;
+  if(w.pair){
+    SEARCH.push({
+      i,
+      head: [w.tr.w, w.tr.r, w.itr.w, w.itr.r].map(norm).join(' '),
+      mean: norm(w.tr.k) + ' ' + norm(w.itr.k),
+      body: [w.tr.e, w.tr.ek, w.tr.eo, w.itr.e, w.itr.ek, w.itr.eo].map(norm).join(' ')
+    });
+    return;
+  }
+  // 형용사 활용 카드는 네 형태도 검색에 넣는다.
+  // 「たかかった」로 쳐서 못 찾으면 활용표를 만든 의미가 없다.
+  const forms = w.forms ? ' ' + w.forms.map(f => norm(f[1]) + ' ' + norm(f[2])).join(' ') : '';
+  SEARCH.push({
+    i,
+    head: norm(w.w) + ' ' + norm(w.r) + forms,
+    mean: norm(w.k),
+    body: norm(w.e) + ' ' + norm(w.ek) + ' ' + norm(w.eo) + ' ' + norm(w.p || w.g)
+  });
+});
+
+function search(qRaw){
+  const q = norm(qRaw);
+  if(!q) return [];
+  const hits = [];
+  for(const s of SEARCH){
+    let score = -1;
+    if(s.head.split(' ').some(t => t.startsWith(q))) score = 0;
+    else if(s.mean.startsWith(q)) score = 1;
+    else if(s.head.includes(q) || s.mean.includes(q)) score = 2;
+    else if(s.body.includes(q)) score = 3;
+    if(score >= 0) hits.push({i:s.i, score});
+  }
+  hits.sort((a, b) => a.score - b.score || a.i - b.i);
+  return hits.slice(0, 80);
+}
+
+// 결과가 다른 모드에 있으면 쪽번호 대신 어느 쪽 책인지 표시한다
+function locLabel(i){
+  if(WORDS[i].kind !== mode)
+    return '<span class="p alt">' + (WORDS[i].kind === 'grammar' ? '문법' : '단어') + '</span>';
+  return '<span class="p">p.' + (PAGE_OF[i] + 1) + '</span>';
+}
+
+function renderSearch(){
+  const q = document.getElementById('q').value;
+  const hits = search(q);
+  if(!q.trim()){
+    drawerBody.innerHTML = '<p class="dempty">단어, 히라가나, 한국어 뜻 아무거나 입력하세요.<br>' +
+      '예문 안의 말로도 찾을 수 있습니다.</p>';
+    return;
+  }
+  if(!hits.length){
+    drawerBody.innerHTML = '<p class="dempty">「' + esc(q) + '」에 해당하는 단어가 없습니다.</p>';
+    return;
+  }
+  drawerBody.innerHTML = '<p class="qcount">' + hits.length + '개' +
+      (hits.length === 80 ? ' 이상' : '') + '</p>' +
+    hits.map(h => {
+      const it = WORDS[h.i];
+      const showRead = it.r && it.r !== it.w;
+      // 활용 카드는 같은 동사가 강의마다 나오므로 목표 형태까지 보여줘야 구분된다
+      if(it.pair){
+        return '<button class="dlink" type="button" data-focus="' + h.i + '">' +
+          '<span><span class="jpw jp">' + esc(it.tr.w) + ' ↔ ' + esc(it.itr.w) + '</span>' +
+          '<span class="tag">타/자</span></span>' + locLabel(h.i) + '</button>';
+      }
+      const tail = it.conj
+        ? '<span class="sub jp">→ ' + esc(it.steps[it.steps.length - 1].t) + '</span>' +
+          '<span class="tag">활용</span>'
+        : it.adjc
+        ? '<span class="sub jp">→ ' + esc(it.forms[2][1]) + '</span>' +
+          '<span class="tag">활용</span>'
+        : '<span class="sub">' + esc(it.k) + '</span>';
+      return '<button class="dlink" type="button" data-focus="' + h.i + '">' +
+        '<span><span class="jpw jp">' + esc(it.w) + '</span> ' +
+        (showRead ? '<span class="sub jp">' + esc(it.r) + '</span> ' : '') +
+        tail + '</span>' +
+        locLabel(h.i) +
+      '</button>';
+    }).join('');
+}
+
+function renderDrawer(){
+  document.getElementById('qbox').classList.toggle('on', currentTab === 'search');
+  if(currentTab === 'search'){ renderSearch(); return; }
+  if(currentTab === 'toc'){
+    drawerBody.innerHTML = SEC_INFO.filter(s => s.kind === mode).map(s => {
+      const p = PAGE_OF[s.first];
+      const sub = s.kind === 'grammar'
+        ? s.count + '개 항목'
+        : s.from + '–' + s.to + '번 · ' + s.count + '단어';
+      return '<button class="dlink" type="button" data-focus="' + s.first + '">' +
+        '<span>' + esc(s.title) + '<br><span class="sub">' + sub + '</span></span>' +
+        '<span class="p">p.' + (p + 1) + '</span>' +
+      '</button>';
+    }).join('');
+  }else{
+    const list = [...marks].sort((a,b) => a - b);
+    if(!list.length){
+      drawerBody.innerHTML = '<p class="dempty">아직 책갈피가 없습니다.<br>' +
+        '단어 오른쪽의 책갈피 아이콘을 누르면 여기에 모입니다.</p>';
+      return;
+    }
+    drawerBody.innerHTML = list.map(i => {
+      const it = WORDS[i];
+      // 짝 카드에는 w·k가 없다 (tr·itr 두 짝으로 들어있다). 그대로 찍으면 undefined가 나온다.
+      const head = it.pair ? esc(it.tr.w) + ' ↔ ' + esc(it.itr.w) : esc(it.w);
+      const sub  = it.pair ? '타/자' : it.k;
+      return '<button class="dlink" type="button" data-focus="' + i + '">' +
+        '<span><span class="jpw jp">' + head + '</span> ' +
+        '<span class="sub">' + esc(sub) + '</span></span>' +
+        locLabel(i) +
+      '</button>';
+    }).join('');
+  }
+}
+function openDrawer(){ renderDrawer(); drawer.classList.add('open'); scrim.classList.add('open'); }
+function closeDrawer(){ drawer.classList.remove('open'); scrim.classList.remove('open'); }
+
+document.getElementById('drawerBtn').addEventListener('click', () => {
+  if(currentTab === 'search') setTab('toc');
+  openDrawer();
+});
+document.getElementById('searchBtn').addEventListener('click', () => {
+  setTab('search');
+  openDrawer();
+  const q = document.getElementById('q');
+  q.select();
+  q.focus();
+});
+document.getElementById('dclose').addEventListener('click', closeDrawer);
+scrim.addEventListener('click', closeDrawer);
+
+document.getElementById('q').addEventListener('input', renderSearch);
+
+function setTab(name){
+  currentTab = name;
+  document.querySelectorAll('.dtab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
+  renderDrawer();
+}
+document.querySelector('.drawer-head').addEventListener('click', e => {
+  const tab = e.target.closest('.dtab');
+  if(!tab) return;
+  setTab(tab.dataset.tab);
+  if(tab.dataset.tab === 'search') document.getElementById('q').focus();
+});
+
+drawerBody.addEventListener('click', e => {
+  const link = e.target.closest('.dlink');
+  if(!link) return;
+  closeDrawer();
+  const i = Number(link.dataset.focus);
+  if(WORDS[i].kind !== mode) setMode(WORDS[i].kind);   // 다른 책이면 먼저 넘어간다
+  goTo(PAGE_OF[i], i);
+});
+
+/* ============================================================
+   테마
+   ============================================================ */
+const themeBtn = document.getElementById('themeBtn');
+// 밝은 화면이 기본. 야간은 직접 켤 때만 적용된다.
+const isDarkNow = () => document.documentElement.getAttribute('data-theme') === 'dark';
+const MOON = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+const SUN  = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>';
+function applyTheme(dark){
+  if(dark) document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+  document.getElementById('themeLabel').textContent = dark ? '주간' : '야간';
+  document.getElementById('themeIcon').innerHTML = dark ? SUN : MOON;
+  themeBtn.setAttribute('aria-label', dark ? '주간 모드로' : '야간 모드로');
+}
+applyTheme(store.get('kangi-night', false));
+themeBtn.addEventListener('click', () => {
+  const next = !isDarkNow();
+  store.set('kangi-night', next);
+  applyTheme(next);
+});
+
+/* ============================================================
+   인쇄 — 전체 페이지 펼치기
+   ============================================================ */
+// 화면의 쪽 나눔은 창 크기에 따른 것이라, 인쇄할 때는
+// 주제별로 이어지는 한 문서로 만들어 종이를 낭비하지 않는다.
+let printBackup = null;
+window.addEventListener('beforeprint', () => {
+  printBackup = spreadEl.innerHTML;
+  let html = '', prevSec = null;
+  WORDS.forEach((w, i) => {
+    if(w.sec !== prevSec){ html += breakHTML(w.sec); prevSec = w.sec; }
+    html += entryHTML(w, i);
+  });
+  spreadEl.innerHTML = '<div class="page"><div class="page-body">' + html + '</div></div>';
+});
+window.addEventListener('afterprint', () => {
+  if(printBackup !== null){ spreadEl.innerHTML = printBackup; printBackup = null; }
+});
+</script>
+</body>
+</html>
