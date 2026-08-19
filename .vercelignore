@@ -1,0 +1,8 @@
+# 사이트에 올라가는 것은 index.html 하나뿐이다.
+# 문서는 저장소(GitHub)에만 두고 배포에서는 뺀다 — 안 그러면
+# /README.md · /ROADMAP.md 같은 주소로 그냥 열린다.
+*.md
+
+# 로컬 설정과 도구 부스러기. CLI로 배포할 때(vercel --prod) 같이 딸려 올라가는 것을 막는다.
+.claude/
+.gitattributes
