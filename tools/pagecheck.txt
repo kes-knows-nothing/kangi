@@ -1,0 +1,26 @@
+쪽 넘침 전수 검사 — 브라우저 콘솔에 붙여넣기
+
+index.html 을 열고 (단어/문법 각각) F12 → Console 에 아래를 붙여넣는다.
+넘치는 쪽이 있으면 쪽번호와 넘친 px가 찍힌다. 0건이면 통과.
+
+(async () => {
+  const label = () => document.getElementById('pageno').textContent;
+  const next  = [...document.querySelectorAll('button')].find(b => /다음/.test(b.textContent));
+  const prev  = [...document.querySelectorAll('button')].find(b => /이전/.test(b.textContent));
+  for (let i = 0; i < 400 && parseInt(label()) > 1; i++) { prev.click(); await new Promise(r => setTimeout(r, 5)); }
+  const bad = [], seen = new Set(); let scr = 0;
+  for (let s = 0; s < 400; s++) {
+    const L = label(); if (seen.has(L)) break; seen.add(L);
+    for (const b of document.querySelectorAll('.page-body')) {
+      if (b.classList.contains('scrollable')) { scr++; continue; }
+      const over = b.scrollHeight - b.clientHeight;
+      if (over > 2) bad.push(L + '  +' + over + 'px  ' + b.textContent.slice(0, 40));
+    }
+    next.click(); await new Promise(r => setTimeout(r, 20));
+  }
+  console.log('훑은 펼침면', seen.size, '· 스크롤 쪽', scr, '· 넘침', bad.length);
+  bad.forEach(x => console.log('  ' + x));
+})();
+
+확인해야 할 크기 — 1920×1000 · 1366×768 · 768 · 390×844 (모바일)
+그리고 경계 폭 500 · 699 · 700px (README 19번)

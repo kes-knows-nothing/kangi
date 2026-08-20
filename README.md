@@ -21,10 +21,10 @@
 
 ```
 kangi/
-├── index.html   572KB — 전부 여기 들어 있음 (HTML + CSS + JS + 단어 데이터)
+├── index.html   857KB — 전부 여기 들어 있음 (HTML + CSS + JS + 데이터)
 ├── README.md    이 문서
 ├── APP.md       앱으로 내놓기까지 남은 과제
-├── ROADMAP.md   문법 N4까지의 강의 순서와 항목 리스트
+├── ROADMAP.md   문법 N4까지의 강의 순서와 항목 리스트  ✔ 완주
 ├── ROADMAP-N1.md  N3~N1 로드맵 — 규모 · 구조가 깨지는 지점 · 결정할 것
 ├── DATA.md      콘텐츠가 커진 뒤의 관리 — 데이터 쪽 · 색인과 구분
 ├── tools/
