@@ -25,6 +25,7 @@ kangi/
 ├── README.md    이 문서
 ├── APP.md       앱으로 내놓기까지 남은 과제
 ├── ROADMAP.md   문법 N4까지의 강의 순서와 항목 리스트
+├── ROADMAP-N1.md  N3~N1 로드맵 — 규모 · 구조가 깨지는 지점 · 결정할 것
 └── IDEAS.md     앞으로 해볼 것 / 보류 목록
 ```
 
