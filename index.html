@@ -239,6 +239,28 @@ button{font-family:inherit}
 .note-p{margin:0 0 6px; font-size:13.5px; line-height:1.62; color:var(--ink)}
 .note-p:last-of-type{margin-bottom:0}
 .note-p b{font-weight:700; color:var(--accent)}   /* 본문 **강조** */
+
+/* 서랍 발판 — 내보내기 · 가져오기 · 모아 읽기 */
+.dfoot{margin-top:14px; padding-top:12px; border-top:1px solid var(--line)}
+.dfoot-row{display:flex; gap:6px; margin-top:6px}
+.dbtn{
+  flex:1; padding:8px 10px; font:inherit; font-size:12.5px; cursor:pointer;
+  color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:7px;
+}
+.dbtn:hover{border-color:var(--accent); color:var(--accent)}
+.dbtn.wide{width:100%; font-weight:600}
+.dnote{margin:8px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-faint)}
+
+/* 책갈피만 읽는 중이라는 표시. 책이 반 토막 나 보이는 것을 막는다. */
+.onlybar{
+  display:none; align-items:center; justify-content:center; gap:10px;
+  padding:6px 14px; font-size:12.5px; color:var(--chrome-ink); background:var(--accent);
+}
+body.marked-only .onlybar{display:flex}
+.onlybar button{
+  font:inherit; font-size:12px; cursor:pointer; padding:2px 9px; border-radius:99px;
+  color:var(--chrome-ink); background:rgba(255,255,255,.16); border:1px solid var(--chrome-line);
+}
 .nrows{margin-top:9px; display:flex; flex-direction:column; gap:5px}
 .nrow{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .ncell{
@@ -550,6 +572,7 @@ button{font-family:inherit}
   <div class="spread" id="spread"></div>
 </div>
 
+<div class="onlybar" id="onlybar">책갈피만 모아 읽는 중 <button type="button" id="onlyOff">전체 책으로</button></div>
 <div class="controls">
   <button class="pbtn" id="prev" type="button">◀ 이전</button>
   <div class="pageno" id="pageno"></div>
@@ -568,6 +591,7 @@ button{font-family:inherit}
     <input type="search" id="q" placeholder="단어 · 히라가나 · 한국어 뜻" autocomplete="off" aria-label="단어 검색">
   </div>
   <div class="drawer-body" id="drawerBody"></div>
+  <input type="file" id="impFile" accept="application/json,.json" hidden>
 </aside>
 
 <script>
@@ -7696,9 +7720,23 @@ const SEC_INFO = DATA.map((sec, si) => {
    저장 상태  (위치는 '쪽번호'가 아니라 '단어 번호'로 저장한다.
    창 크기에 따라 쪽 나눔이 달라지기 때문)
    ============================================================ */
+// 저장하는 것 전부. 내보내기·가져오기가 이 목록을 그대로 쓴다.
+const STORE_KEYS = ['kangi-bookmarks', 'kangi-mode', 'kangi-anchor-word',
+                    'kangi-anchor-grammar', 'kangi-rate', 'kangi-toc-shut', 'kangi-night'];
+let storeBroken = false;
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
-  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  // 예전에는 실패를 그냥 삼켰다. 사파리 프라이빗 모드에서는 저장이 통째로 무시되는데
+  // 아무 표시가 없어서, 책갈피를 찍어도 남지 않는 것을 알 길이 없었다.
+  set(k, v){
+    try{ localStorage.setItem(k, JSON.stringify(v)); }
+    catch(e){
+      if(storeBroken) return;
+      storeBroken = true;
+      showWarn('이 브라우저에서는 <b>책갈피와 읽던 위치가 저장되지 않습니다</b>. ' +
+               '프라이빗 모드이거나 저장 공간이 가득 찼을 수 있습니다.');
+    }
+  }
 };
 // 저장은 단어 key로, 화면 안에서는 번호로 다룬다.
 const markedKeys = new Set(store.get('kangi-bookmarks', []));
@@ -7710,6 +7748,10 @@ const saveMarks = () => store.set('kangi-bookmarks', [...marks].map(i => WORDS[i
 // 목차·쪽수·읽던 위치가 모드마다 따로 유지된다.
 let mode = store.get('kangi-mode', 'word');
 if(mode !== 'word' && mode !== 'grammar') mode = 'word';
+
+// 책갈피만 모아 읽기. 일부러 저장하지 않는다 —
+// 다음에 열었을 때 책이 반 토막 나 있으면 고장 난 것처럼 보이기 때문.
+let markedOnly = false;
 
 let anchor = 0;
 function loadAnchor(){
@@ -8018,9 +8060,25 @@ function paginate(){
   // 여기서는 반올림 오차분 2px만 남긴다.
   const avail = pb.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 2;
 
-  // 현재 모드의 항목만 대상으로 한다
-  const list = [];
-  WORDS.forEach((w, i) => { if(w.kind === mode) list.push(i); });
+  // 현재 모드의 항목만 대상으로 한다.
+  // 「책갈피만 모아 읽기」가 켜져 있으면 책갈피 찍은 것만 남긴다 —
+  // 안 외워지는 것을 따로 몰아 읽으려는 것이다. 퀴즈가 아니라 그냥 책이다.
+  const pick = () => {
+    const out = [];
+    WORDS.forEach((w, i) => {
+      if(w.kind !== mode) return;
+      if(markedOnly && !marks.has(i)) return;
+      out.push(i);
+    });
+    return out;
+  };
+  let list = pick();
+  // 이 책의 책갈피를 다 지웠거나 모드를 옮기면 걸러낸 결과가 빈다. 그러면 필터를 스스로 끈다.
+  if(markedOnly && !list.length){
+    markedOnly = false;
+    document.body.classList.remove('marked-only');
+    list = pick();
+  }
 
   // 실제 페이지 폭 안에서 높이 측정
   measuring = true;
@@ -8253,6 +8311,14 @@ spreadEl.addEventListener('click', e => {
     mk.classList.toggle('on', on);
     mk.setAttribute('aria-pressed', String(on));
     mk.closest('.entry').classList.toggle('marked', on);
+    // 모아 읽는 중에 책갈피를 빼면 그 카드가 이 책에서 사라져야 한다
+    if(markedOnly && !on){
+      if(anchor === i){                       // 지금 보던 것이 빠지면 다음 책갈피로 옮긴다
+        const rest = [...marks].sort((a,b)=>a-b).filter(x => WORDS[x].kind === mode);
+        if(rest.length) anchor = rest.find(x => x > i) !== undefined ? rest.find(x => x > i) : rest[rest.length-1];
+      }
+      paginate(); render();
+    }
     if(currentTab === 'marks') renderDrawer();
   }
 });
@@ -8263,6 +8329,43 @@ spreadEl.addEventListener('click', e => {
 const synth = window.speechSynthesis;
 const warnEl = document.getElementById('voiceWarn');
 let jaVoice = null, playingBtn = null;
+
+/* ============================================================
+   내보내기 · 가져오기
+   localStorage는 브라우저·기기별로 격리되고, 사파리는 한동안 안 쓰면 지운다.
+   기기를 옮기거나 날아가는 것을 막는 유일한 수단이라 파일로 빼둘 수 있게 한다.
+   ============================================================ */
+function exportStore(){
+  const data = {};
+  STORE_KEYS.forEach(k => { const v = localStorage.getItem(k); if(v !== null) data[k] = v; });
+  const body = JSON.stringify({app:'kangi', v:1, at:new Date().toISOString(), data}, null, 1);
+  const url = URL.createObjectURL(new Blob([body], {type:'application/json'}));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'kangi-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function importStore(file){
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const j = JSON.parse(rd.result);
+      if(j.app !== 'kangi' || !j.data) throw new Error('Kangi에서 내보낸 파일이 아닙니다');
+      let n = 0;
+      Object.keys(j.data).forEach(k => {
+        if(STORE_KEYS.indexOf(k) >= 0){ localStorage.setItem(k, j.data[k]); n++; }
+      });
+      if(!n) throw new Error('가져올 것이 없습니다');
+      location.reload();
+    }catch(e){
+      showWarn('가져오지 못했습니다 — ' + esc(e.message));
+    }
+  };
+  rd.onerror = () => showWarn('파일을 읽지 못했습니다.');
+  rd.readAsText(file);
+}
 
 function showWarn(html){ warnEl.innerHTML = html; warnEl.classList.remove('hidden'); }
 
@@ -8550,9 +8653,25 @@ function renderDrawer(){
     }).join('');
   }else{
     const list = [...marks].sort((a,b) => a - b);
+    // 발판은 책갈피가 없어도 그린다 — 가져오기는 그때 제일 필요하다.
+    const inMode = list.filter(i => WORDS[i].kind === mode).length;
+    const foot =
+      '<div class="dfoot">' +
+        (inMode
+          ? '<button class="dbtn wide" data-act="only">' +
+              (markedOnly ? '전체 책으로 돌아가기' : '책갈피만 모아 읽기 · ' + inMode + '개') +
+            '</button>'
+          : '<p class="dnote">이 책(' + (mode === 'word' ? '단어' : '문법') + ')에는 책갈피가 없습니다.</p>') +
+        '<div class="dfoot-row">' +
+          '<button class="dbtn" data-act="export">파일로 내보내기</button>' +
+          '<button class="dbtn" data-act="import">파일에서 가져오기</button>' +
+        '</div>' +
+        '<p class="dnote">책갈피와 읽던 위치는 이 브라우저에만 저장됩니다. ' +
+        '기기를 옮기거나 지워지는 것에 대비하려면 내보내 두세요.</p>' +
+      '</div>';
     if(!list.length){
       drawerBody.innerHTML = '<p class="dempty">아직 책갈피가 없습니다.<br>' +
-        '단어 오른쪽의 책갈피 아이콘을 누르면 여기에 모입니다.</p>';
+        '단어 오른쪽의 책갈피 아이콘을 누르면 여기에 모입니다.</p>' + foot;
       return;
     }
     drawerBody.innerHTML = list.map(i => {
@@ -8565,7 +8684,7 @@ function renderDrawer(){
         '<span class="sub">' + esc(sub) + '</span></span>' +
         locLabel(i) +
       '</button>';
-    }).join('');
+    }).join('') + foot;
   }
 }
 function openDrawer(){ renderDrawer(); drawer.classList.add('open'); scrim.classList.add('open'); }
@@ -8599,6 +8718,17 @@ document.querySelector('.drawer-head').addEventListener('click', e => {
   if(tab.dataset.tab === 'search') document.getElementById('q').focus();
 });
 
+document.getElementById('impFile').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if(f) importStore(f);
+  e.target.value = '';   // 같은 파일을 다시 골라도 change가 오도록
+});
+document.getElementById('onlyOff').addEventListener('click', () => {
+  markedOnly = false;
+  document.body.classList.remove('marked-only');
+  paginate(); render(); renderDrawer();
+});
+
 drawerBody.addEventListener('click', e => {
   const grp = e.target.closest('.dgrp-h');
   if(grp){
@@ -8606,6 +8736,24 @@ drawerBody.addEventListener('click', e => {
     if(tocShut.has(key)) tocShut.delete(key); else tocShut.add(key);
     saveTocShut();
     renderDrawer();
+    return;
+  }
+  const btn = e.target.closest('.dbtn');
+  if(btn){
+    const act = btn.dataset.act;
+    if(act === 'export') exportStore();
+    else if(act === 'import') document.getElementById('impFile').click();
+    else if(act === 'only'){
+      markedOnly = !markedOnly;
+      if(markedOnly){
+        // 첫 책갈피로 옮겨 놓는다. 안 그러면 지금 anchor가 걸러져 엉뚱한 데가 열린다.
+        const first = [...marks].sort((a,b)=>a-b).find(i => WORDS[i].kind === mode);
+        if(first !== undefined) anchor = first;
+      }
+      document.body.classList.toggle('marked-only', markedOnly);
+      paginate(); render(); renderDrawer();
+      if(markedOnly) closeDrawer();
+    }
     return;
   }
   const link = e.target.closest('.dlink');
