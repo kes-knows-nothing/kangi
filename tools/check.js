@@ -130,6 +130,18 @@ DATA.forEach((sec, si) => {
     (it.bullets || []).forEach(v => { if(String(v).includes('**')) starOutside.push('bullets'); });
     if(starOutside.length) W('note.p 밖에 ** 가 있다 (그대로 별표로 찍힌다) — ' + [...new Set(starOutside)].join(',') + '\n    ' + tag);
 
+    /* 명사는 예문 안에서 읽기가 그대로 나와야 한다.
+       alignRuby는 「가나를 기준으로 쪼갤 수 있는가」만 보므로 읽기가 틀려도 통과한다.
+       실제로 年下(としした)를 としたと 한 글자 빠뜨린 적이 있다.
+       동사·형용사는 예문에서 활용되므로 이 검사에서 뺀다. */
+    if(kind === 'word' && /명사/.test(it.p || '') && !/동사|형용사/.test(it.p || '')){
+      [['ek', it.e, it.ek], ['ek2', it.e2, it.ek2]].forEach(([f, e, ek]) => {
+        if(!e || !ek) return;
+        if(e.includes(it.w) && !ek.includes(it.r))
+          E('명사의 읽기가 예문 읽기에 안 나온다 — ' + it.w + ' = 「' + it.r + '」' + '\n    ' + ek + '\n    ' + tag);
+      });
+    }
+
     /* 예문 루비 정렬 */
     const exs = kind === 'pair' ? [[it.a.e, it.a.ek], [it.b.e, it.b.ek]]
                                 : [[it.e, it.ek], [it.e2, it.ek2]];
