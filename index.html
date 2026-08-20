@@ -5703,7 +5703,7 @@ const DATA = [
         "**なければ → なきゃ.** 「行かなきゃ」. 뒤의 ならない는 아예 안 붙인다.",
         "**なくては → なくちゃ.** 「行かなくちゃ」. ⑪편에서 ては가 ちゃ로 줄던 것과 같은 변화다.",
         "혼잣말에 특히 많다 — 「あ、電話しなきゃ」. **뒤가 없어도 「해야 한다」로 완성된다.**"],
-     rows:[["行かなければならない","→","行かなきゃ"],["行かなくてはいけない","→","行かなくちゃ"]]},
+     rows:[["行かなければならない","行かなきゃ"],["行かなくてはいけない","行かなくちゃ"]]},
 
     {note:true, t:"〜ないといけない — 제일 회화적인 쪽",
      p:["또 하나의 꼴이다. **ない형 + と + いけない**. 「行かないといけません」.",
@@ -5879,7 +5879,7 @@ const DATA = [
         "**〜てしまう → 〜ちゃう.** 忘れてしまう → **忘れちゃう**. 食べてしまった → **食べちゃった**.",
         "**〜でしまう → 〜じゃう.** 飲んでしまう → **飲んじゃう**. 死んでしまった → **死んじゃった**.",
         "て인지 で인지로 갈린다. ⑪편에서 ては가 ちゃ로, では가 じゃ로 줄던 것과 **같은 규칙**이다."],
-     rows:[["忘れてしまった","→","忘れちゃった"],["飲んでしまった","→","飲んじゃった"]]},
+     rows:[["忘れてしまった","忘れちゃった"],["飲んでしまった","飲んじゃった"]]},
 
     {note:true, t:"〜ておく — 미리 해두다",
      p:["원래 뜻은 「놓다」다. 거기서 **「해서 그 상태로 놓아둔다」**가 나온다.",
@@ -6484,7 +6484,7 @@ const DATA = [
         "만들어진 것은 **명사**다. 그래서 앞에 の가 붙는다 — 「漢字**の**読み方」.",
         "**を가 の로 바뀌는 것에 주의한다.** 「切符を買う」 → 「切符**の**買い方」. 동사가 명사가 됐으니 목적어도 명사를 꾸미는 꼴이 된다.",
         "일상에서 매우 자주 쓴다 — 「この漢字の読み方を教えてください」는 통째로 외워둘 문장이다."],
-     rows:[["使います","어간 使い","使い方"],["切符を買う","→","切符の買い方"]]},
+     rows:[["使います","어간 使い","使い方"],["切符を買う","切符の買い方"]]},
 
     {note:true, t:"〜がる — 3인칭의 감정 · 이 편의 핵심",
      p:["**한국어에 없는 규칙이다.** 일본어는 **남의 감정을 형용사로 단정하지 않는다.**",
@@ -6692,7 +6692,7 @@ const DATA = [
         "1그룹인데 **ます형이 り가 아니라 い**다 — いらっしゃります ✗, **いらっしゃいます** ○.",
         "おっしゃる → **おっしゃいます**. くださる → **くださいます**. なさる → **なさいます**.",
         "⑱편에서 「くださる는 くださいます다」라고 했던 것이 이 무리 전체의 규칙이었다. **ください도 여기서 나온 말**이다."],
-     rows:[["いらっしゃる","→","いらっしゃいます"],["くださる","→","くださいます"],["ください","여기서 나옴","⑪편"]]},
+     rows:[["いらっしゃる","いらっしゃいます"],["くださる","くださいます"],["ください","여기서 나온 말","⑪편"]]},
 
     {note:true, t:"授受의 경어 — ⑱편 회수",
      p:["⑱편에서 세 쌍을 미리 봐뒀다. 여기서 제대로 쓴다.",
@@ -7536,10 +7536,30 @@ const kataToHira = s => s.replace(/[ァ-ヶ]/g,
   c => String.fromCharCode(c.charCodeAt(0) - 0x60));
 const norm = s => kataToHira(String(s || '').toLowerCase()).replace(/[\s·・、。！？]/g, '');
 
-// 검색 대상: 단어 카드와 활용 카드. 설명 카드는 제외.
+// 검색 대상: 모든 카드.
+// 설명 카드와 표지도 넣는다 — 문형의 이름이 적혀 있는 곳이 거기뿐이기 때문이다.
+// 카드에는 활용된 꼴(ことになりました)만 찍히고 사전형(ことになる)은 본문에만 있어서,
+// 빼두면 「그 문형이 어디서 설명되는지」를 검색으로 못 찾는다.
 const SEARCH = [];
 WORDS.forEach((w, i) => {
-  if(w.note || w.cover) return;
+  if(w.cover){
+    SEARCH.push({
+      i,
+      head: [w.no, w.t, w.sub].map(norm).join(' '),
+      mean: norm(w.sub),
+      body: [w.lead, ...(w.bullets || []), ...(w.peek || []), w.meta].map(norm).join(' ')
+    });
+    return;
+  }
+  if(w.note){
+    SEARCH.push({
+      i,
+      head: norm(w.t),
+      mean: '',
+      body: [...(w.p || []), ...(w.rows || []).flat()].map(norm).join(' ')
+    });
+    return;
+  }
   if(w.pair){
     SEARCH.push({
       i,
@@ -7552,9 +7572,12 @@ WORDS.forEach((w, i) => {
   // 형용사 활용 카드는 네 형태도 검색에 넣는다.
   // 「たかかった」로 쳐서 못 찾으면 활용표를 만든 의미가 없다.
   const forms = w.forms ? ' ' + w.forms.map(f => norm(f[1]) + ' ' + norm(f[2])).join(' ') : '';
+  // 활용 카드의 단계(買う → 買わ → 買われる)도 넣는다.
+  // 카드에 제일 크게 찍혀 있는 글자인데 여태 검색에서 빠져 있었다.
+  const steps = w.steps ? ' ' + w.steps.map(st => norm(st.t)).join(' ') : '';
   SEARCH.push({
     i,
-    head: norm(w.w) + ' ' + norm(w.r) + forms,
+    head: norm(w.w) + ' ' + norm(w.r) + forms + steps,
     mean: norm(w.k),
     // 둘째 예문도 검색에 넣는다. 안 넣으면 예문을 늘린 만큼 안 찾히는 문장이 는다.
     body: [w.e, w.ek, w.eo, w.e2, w.ek2, w.eo2, w.p || w.g].map(norm).join(' ')
@@ -7589,11 +7612,11 @@ function renderSearch(){
   const hits = search(q);
   if(!q.trim()){
     drawerBody.innerHTML = '<p class="dempty">단어, 히라가나, 한국어 뜻 아무거나 입력하세요.<br>' +
-      '예문 안의 말로도 찾을 수 있습니다.</p>';
+      '예문 안의 말로도, 문법 설명 안의 말로도 찾을 수 있습니다.</p>';
     return;
   }
   if(!hits.length){
-    drawerBody.innerHTML = '<p class="dempty">「' + esc(q) + '」에 해당하는 단어가 없습니다.</p>';
+    drawerBody.innerHTML = '<p class="dempty">「' + esc(q) + '」에 해당하는 것이 없습니다.</p>';
     return;
   }
   drawerBody.innerHTML = '<p class="qcount">' + hits.length + '개' +
@@ -7601,6 +7624,18 @@ function renderSearch(){
     hits.map(h => {
       const it = WORDS[h.i];
       const showRead = it.r && it.r !== it.w;
+      // 설명 카드와 표지는 제목만 보여주고 꼬리표로 구분한다
+      if(it.cover){
+        return '<button class="dlink" type="button" data-focus="' + h.i + '">' +
+          '<span><span class="jpw">' + esc(it.t) + '</span>' +
+          (it.sub ? '<span class="sub">' + esc(it.sub) + '</span>' : '') +
+          '<span class="tag">표지</span></span>' + locLabel(h.i) + '</button>';
+      }
+      if(it.note){
+        return '<button class="dlink" type="button" data-focus="' + h.i + '">' +
+          '<span><span class="jpw">' + esc(it.t) + '</span>' +
+          '<span class="tag">설명</span></span>' + locLabel(h.i) + '</button>';
+      }
       // 활용 카드는 같은 동사가 강의마다 나오므로 목표 형태까지 보여줘야 구분된다
       if(it.pair){
         return '<button class="dlink" type="button" data-focus="' + h.i + '">' +
