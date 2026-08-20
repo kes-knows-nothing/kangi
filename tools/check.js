@@ -171,6 +171,23 @@ DATA.forEach((sec, si) => {
   }
 });
 
+/* ---------- 5-2. 같은 예문을 두 곳에 쓰지 않았는지 ---------- */
+// 카드마다 예문이 따로여야 한다. 같은 문장이 두 번 나오면 한 카드는 새로 보여주는 것이 없다.
+{
+  const ex = new Map();
+  DATA.forEach((sec, si) => sec.items.forEach(it => {
+    const who = sec.t + ' / ' + (it.t || it.w || (it.a && it.a.w) || '');
+    const add = (e) => {
+      if(!e) return;
+      if(ex.has(e)) W('예문이 겹친다 — 「' + e + '」' + '\n    ' + ex.get(e) + '\n    ' + who);
+      else ex.set(e, who);
+    };
+    if(it.pair){ add(it.a.e); add(it.b.e); return; }
+    if(it.cover || it.note) return;
+    add(it.e); add(it.e2);
+  }));
+}
+
 /* ---------- 6. 결과 ---------- */
 function report(){
   const total = n.cover + n.note + n.conj + n.pair + n.adjc + n.word;
