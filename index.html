@@ -326,10 +326,16 @@ body.marked-only .onlybar{display:flex}
 .fcell.hit{border-color:var(--accent)}
 .fcell.hit b{color:var(--accent)}
 
-.entry.marked{
-  background:linear-gradient(90deg, var(--accent-soft), transparent 70%);
-  box-shadow:inset 3px 0 0 var(--accent);
-  padding-left:11px; margin-left:-11px; border-radius:0 6px 6px 0;
+/* 책갈피 — 지면을 칠하지 않고 바깥 여백에 표식만 세운다.
+   예전에는 초록 배경 + 왼쪽 막대 + 카드를 11px 왼쪽으로 밀기, 셋을 한꺼번에 걸었다.
+   「초록은 껍데기에만」 원칙을 지면 안에서 깨고 있었고,
+   밀린 카드만 왼쪽 끝이 어긋나 다른 카드와 줄이 안 맞았다.
+   띠는 흐름 밖에 두므로 쪽 나눔이 재는 높이는 그대로다. */
+.entry.marked{position:relative}
+.entry.marked::after{
+  content:''; position:absolute; right:-11px; top:11px;
+  width:5px; height:15px; background:var(--accent);
+  clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
 }
 @keyframes flash{0%,100%{background-color:transparent} 20%,60%{background-color:var(--accent-soft)}}
 .entry.flash{animation:flash 1.5s ease-in-out}
