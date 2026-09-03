@@ -8754,6 +8754,8 @@ let PAGES = [];    // [[단어번호, ...], ...]
 let PAGE_OF = [];  // 단어번호 -> 쪽 인덱스
 let PAGE_TALL = new Set();   // 항목이 쪽보다 커서 스크롤을 열어야 하는 쪽
 let cur = 0;       // 현재 쪽 인덱스
+// 잰 높이를 쟁여 둔다 — 쪽의 폭이 그대로면 같은 항목을 두 번 재지 않는다
+let MEAS = null;   // {key, H, MT, MB, breakH}
 
 const shellHTML = '<div class="page"><div class="running"><b>&nbsp;</b></div>' +
                   '<div class="page-body"></div><div class="folio">&nbsp;</div></div>';
@@ -8791,25 +8793,35 @@ function paginate(){
     list = pick();
   }
 
-  // 실제 페이지 폭 안에서 높이 측정
-  measuring = true;
-  const probe = document.createElement('div');
-  probe.innerHTML = breakHTML('측정') + list.map(i => entryHTML(WORDS[i], i)).join('');
-  measuring = false;
-  pb.appendChild(probe);
+  // 실제 페이지 폭 안에서 높이 측정 — 한 번 잰 항목은 다시 재지 않는다.
+  // 재는 값은 쪽의 폭에만 달려 있다. 책갈피 띠는 흐름 밖이라(위 .entry.marked 참고)
+  // 높이를 안 바꾸고, 야간 전환은 색만 바꾼다. 그래서 폭이 그대로면 두 번째부터는 잴 것이 없다 —
+  // 단어↔문법을 오갈 때마다 1000장을 한꺼번에 배치하느라 300ms씩 멎던 것이 여기서 사라진다.
+  const mkey = String(pb.clientWidth);
+  if(!MEAS || MEAS.key !== mkey) MEAS = { key: mkey, H: {}, MT: {}, MB: {}, breakH: 0 };
+  const H = MEAS.H, MT = MEAS.MT, MB = MEAS.MB;
+  const fresh = list.filter(i => H[i] === undefined);
 
-  const kids = probe.children;
-  const bs = getComputedStyle(kids[0]);
-  const breakH = kids[0].offsetHeight + parseFloat(bs.marginTop) + parseFloat(bs.marginBottom);
-  // offsetHeight에는 margin이 안 들어간다. 여백 있는 카드가 이어질 때를 위해 따로 잰다.
-  const H = {}, MT = {}, MB = {};
-  list.forEach((gi, n) => {
-    const el = kids[n + 1], es = getComputedStyle(el);
-    H[gi]  = el.offsetHeight;
-    MT[gi] = parseFloat(es.marginTop)    || 0;
-    MB[gi] = parseFloat(es.marginBottom) || 0;
-  });
-  probe.remove();
+  if(fresh.length || !MEAS.breakH){
+    measuring = true;
+    const probe = document.createElement('div');
+    probe.innerHTML = breakHTML('측정') + fresh.map(i => entryHTML(WORDS[i], i)).join('');
+    measuring = false;
+    pb.appendChild(probe);
+
+    const kids = probe.children;
+    const bs = getComputedStyle(kids[0]);
+    MEAS.breakH = kids[0].offsetHeight + parseFloat(bs.marginTop) + parseFloat(bs.marginBottom);
+    // offsetHeight에는 margin이 안 들어간다. 여백 있는 카드가 이어질 때를 위해 따로 잰다.
+    fresh.forEach((gi, n) => {
+      const el = kids[n + 1], es = getComputedStyle(el);
+      H[gi]  = el.offsetHeight;
+      MT[gi] = parseFloat(es.marginTop)    || 0;
+      MB[gi] = parseFloat(es.marginBottom) || 0;
+    });
+    probe.remove();
+  }
+  const breakH = MEAS.breakH;
 
   PAGES = [];
   const tooTall = new Set();
