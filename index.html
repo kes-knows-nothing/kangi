@@ -326,6 +326,44 @@ body.marked-only .onlybar{display:flex}
 .fcell.hit{border-color:var(--accent)}
 .fcell.hit b{color:var(--accent)}
 
+/* ---- 한자 카드 ---- */
+/* 글자를 크게 왼쪽에, 읽기 두 줄을 오른쪽에. 예시 단어와 예문은 그 아래로 단어 카드와 같은 모양. */
+.kc-top{display:flex; align-items:flex-start; gap:14px}
+.kc-char{
+  flex:none; width:64px; text-align:center;
+  font-size:52px; line-height:1.1; font-weight:500; color:var(--jp);
+}
+.kc-reads{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; padding-top:5px}
+.kc-row{display:flex; align-items:baseline; gap:9px; font-size:15.5px; color:var(--ink); line-height:1.45}
+.kc-row em{
+  flex:none; font-style:normal; font-size:10.5px; color:var(--ink-faint);
+  background:var(--badge); border-radius:4px; padding:1px 6px;
+}
+.kc-none{color:var(--ink-faint)}
+.kc-list{display:flex; flex-wrap:wrap; column-gap:0; row-gap:1px; min-width:0}
+.kc-r{white-space:nowrap}
+/* 가운뎃점은 앞 읽기 끝에 붙인다 — 줄이 바뀌어도 새 줄이 「·」로 시작하지 않게 */
+.kc-r:not(:last-child)::after{content:"·"; color:var(--ink-faint); margin:0 7px}
+.kc-ko{margin-left:4px; font-size:12.5px; color:var(--ink-soft)}
+.kc-top .pos{margin-top:6px}
+.kc-top .mark{margin-left:0; margin-top:2px}
+.kc-word{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-top:9px; padding-top:8px; border-top:1px dashed var(--line);
+}
+.kc-word b{font-size:18px; font-weight:600; color:var(--jp)}
+.entry.kanji .mean-inline{font-size:14px; color:var(--ink-soft)}
+.klink{
+  display:inline-flex; align-items:baseline; gap:8px; flex-wrap:wrap; text-align:left;
+  border:0; background:none; padding:0; font:inherit; color:inherit; cursor:pointer;
+}
+.klink .go{font-size:10.5px; color:var(--ink-faint); border:1px solid var(--line); border-radius:4px; padding:0 5px}
+@media (max-height:480px){
+  .kc-char{font-size:40px; width:50px}
+  .kc-row{font-size:14px}
+  .kc-word{margin-top:6px; padding-top:5px}
+}
+
 /* 책갈피 — 지면을 칠하지 않고 바깥 여백에 표식만 세운다.
    예전에는 초록 배경 + 왼쪽 막대 + 카드를 11px 왼쪽으로 밀기, 셋을 한꺼번에 걸었다.
    「초록은 껍데기에만」 원칙을 지면 안에서 깨고 있었고,
@@ -517,6 +555,8 @@ body.marked-only .onlybar{display:flex}
   .pbtn:hover:not(:disabled){border-color:var(--chrome-accent); color:var(--chrome-accent)}
   .dclose:hover{color:var(--accent)}
   .dlink:hover{border-color:var(--accent); color:var(--accent)}
+  .klink:hover b, .klink:hover .go{color:var(--accent)}
+  .klink:hover .go{border-color:var(--accent)}
   .kj:hover{border-bottom-color:var(--accent); color:var(--accent)}
   .kj:hover::after{opacity:1}
 }
@@ -552,6 +592,7 @@ body.marked-only .onlybar{display:flex}
   <div class="modes" role="group" aria-label="보기 전환">
     <button class="mbtn on" data-mode="word" type="button">단어</button>
     <button class="mbtn" data-mode="grammar" type="button">문법</button>
+    <button class="mbtn" data-mode="kanji" type="button">한자</button>
   </div>
   <label class="rate">
     <span class="lbl">속도</span>
@@ -8383,6 +8424,355 @@ const DATA = [
      e:"この町は駐車場が不足しています。",ek:"このまちはちゅうしゃじょうがふそくしています。",eo:"이 동네는 주차장이 부족합니다.",
      e2:"人手が不足しているそうです。",ek2:"ひとでがふそくしているそうです。",eo2:"일손이 부족하다고 합니다."}
   ]
+},
+/* ============================================================
+   한자 책 — kanji:true
+   c:한자 on:음독(가타카나) kun:훈독(히라가나, 활용 어미는 괄호)
+   w·r·k:예시 단어 / e·ek·eo:예문
+   읽기는 KANJIDIC과 맞춰 본다. 자주 쓰는 것부터 셋까지만.
+   ============================================================ */
+{
+  t:"숫자 · 돈",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 01", t:"숫자 · 돈",
+     lead:"一부터 万까지, 그리고 円. 같은 글자라도 「いち」와 「ひとつ」처럼 읽는 법이 둘로 갈린다. 그 두 갈래 — 음독과 훈독 — 부터 짚고 간다.",
+     peek:["一","二","三","四","五","六","七","八","九","十","百","千","万","円"]},
+
+    {note:true, t:"먼저 — 음독과 훈독",
+     p:["한자 하나에는 대개 읽는 법이 두 갈래 있다. **음독**은 한자와 함께 중국에서 들어온 소리, **훈독**은 그 한자에 원래 일본말을 붙여 읽는 소리다. 山을 「산」이라 읽으면 음독, 「뫼」라 읽으면 훈독인 셈이다.",
+        "대체로 한자끼리 붙은 말(一月)은 음독으로, 한 글자로 쓰이거나 뒤에 가나가 붙은 말(一つ)은 훈독으로 읽는다. 예외도 많으니 카드의 예시 단어로 익힌다.",
+        "카드에는 음독을 가타카나, 훈독을 히라가나로 적는다. 괄호 속은 뒤에 붙는 가나다. 옆의 한글은 소리를 대강 옮긴 것이라, 정확한 소리는 예시 단어의 발음으로 듣는다."],
+     rows:[["음독 イチ 이치","一月 いちがつ"],["훈독 ひと(つ) 히토(츠)","一つ ひとつ"]]},
+    {kanji:true, c:"一", on:["イチ","イツ"], kun:["ひと","ひと(つ)"],
+     w:"一つ",r:"ひとつ",k:"하나, 한 개",
+     e:"卵を一つ買いました。",ek:"たまごをひとつかいました。",eo:"달걀을 하나 샀습니다."},
+    {kanji:true, c:"二", on:["ニ"], kun:["ふた","ふた(つ)"],
+     w:"二人",r:"ふたり",k:"두 명",
+     e:"部屋に学生が二人います。",ek:"へやにがくせいがふたりいます。",eo:"방에 학생이 두 명 있습니다."},
+    {kanji:true, c:"三", on:["サン"], kun:["み","みっ(つ)"],
+     w:"三つ",r:"みっつ",k:"셋, 세 개",
+     e:"いすが三つしかありません。",ek:"いすがみっつしかありません。",eo:"의자가 세 개밖에 없습니다."},
+    {kanji:true, c:"四", on:["シ"], kun:["よ","よん","よっ(つ)"],
+     w:"四つ",r:"よっつ",k:"넷, 네 개",
+     e:"みかんを四つ食べました。",ek:"みかんをよっつたべました。",eo:"귤을 네 개 먹었습니다."},
+    {kanji:true, c:"五", on:["ゴ"], kun:["いつ","いつ(つ)"],
+     w:"五つ",r:"いつつ",k:"다섯, 다섯 개",
+     e:"妹は今年で五つになります。",ek:"いもうとはことしでいつつになります。",eo:"여동생은 올해로 다섯 살이 됩니다."},
+    {kanji:true, c:"六", on:["ロク"], kun:["む","むっ(つ)"],
+     w:"六つ",r:"むっつ",k:"여섯, 여섯 개",
+     e:"箱の中にボールが六つ入っています。",ek:"はこのなかにボールがむっつはいっています。",eo:"상자 안에 공이 여섯 개 들어 있습니다."},
+    {kanji:true, c:"七", on:["シチ"], kun:["なな","なな(つ)"],
+     w:"七つ",r:"ななつ",k:"일곱, 일곱 개",
+     e:"空に星が七つ見えます。",ek:"そらにほしがななつみえます。",eo:"하늘에 별이 일곱 개 보입니다."},
+    {kanji:true, c:"八", on:["ハチ"], kun:["や","やっ(つ)"],
+     w:"八つ",r:"やっつ",k:"여덟, 여덟 개",
+     e:"おにぎりを八つ作りました。",ek:"おにぎりをやっつつくりました。",eo:"주먹밥을 여덟 개 만들었습니다."},
+    {kanji:true, c:"九", on:["キュウ","ク"], kun:["ここの","ここの(つ)"],
+     w:"九月",r:"くがつ",k:"9월",
+     e:"九月に日本へ行く予定です。",ek:"くがつににほんへいくよていです。",eo:"9월에 일본에 갈 예정입니다."},
+    {kanji:true, c:"十", on:["ジュウ","ジッ","ジュッ"], kun:["とお","と"],
+     w:"十分",r:"じゅうぶん",k:"충분함",
+     e:"時間はまだ十分あります。",ek:"じかんはまだじゅうぶんあります。",eo:"시간은 아직 충분히 있습니다."},
+    {kanji:true, c:"百", on:["ヒャク"], kun:[],
+     w:"三百",r:"さんびゃく",k:"300",
+     e:"このパンは三百円です。",ek:"このパンはさんびゃくえんです。",eo:"이 빵은 300엔입니다."},
+    {kanji:true, c:"千", on:["セン"], kun:[],
+     w:"三千",r:"さんぜん",k:"3,000",
+     e:"靴を三千円で買いました。",ek:"くつをさんぜんえんでかいました。",eo:"신발을 3,000엔에 샀습니다."},
+    {kanji:true, c:"万", on:["マン","バン"], kun:[],
+     w:"一万",r:"いちまん",k:"1만",
+     e:"毎月一万円ずつためています。",ek:"まいつきいちまんえんずつためています。",eo:"매달 1만 엔씩 모으고 있습니다."},
+    {kanji:true, c:"円", on:["エン"], kun:["まる(い)"],
+     w:"百円",r:"ひゃくえん",k:"100엔",
+     e:"百円のボールペンを買いました。",ek:"ひゃくえんのボールペンをかいました。",eo:"100엔짜리 볼펜을 샀습니다."}
+  ]
+},
+{
+  t:"요일",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 02", t:"요일",
+     lead:"달력 한 줄. 요일의 이름이 곧 해 · 달 · 불 · 물 · 나무 · 쇠 · 흙이다.",
+     peek:["日","月","火","水","木","金","土"]},
+    {kanji:true, c:"日", on:["ニチ","ジツ"], kun:["ひ","か"],
+     w:"毎日",r:"まいにち",k:"매일",
+     e:"毎日、駅まで歩きます。",ek:"まいにち、えきまであるきます。",eo:"매일 역까지 걷습니다."},
+    {kanji:true, c:"月", on:["ゲツ","ガツ"], kun:["つき"],
+     w:"月曜日",r:"げつようび",k:"월요일",
+     e:"月曜日は朝から会議があります。",ek:"げつようびはあさからかいぎがあります。",eo:"월요일은 아침부터 회의가 있습니다."},
+    {kanji:true, c:"火", on:["カ"], kun:["ひ"],
+     w:"火曜日",r:"かようび",k:"화요일",
+     e:"火曜日にプールへ行きます。",ek:"かようびにプールへいきます。",eo:"화요일에 수영장에 갑니다."},
+    {kanji:true, c:"水", on:["スイ"], kun:["みず"],
+     w:"水",r:"みず",k:"물",
+     e:"冷たい水を一杯ください。",ek:"つめたいみずをいっぱいください。",eo:"차가운 물을 한 잔 주세요."},
+    {kanji:true, c:"木", on:["モク","ボク"], kun:["き"],
+     w:"木",r:"き",k:"나무",
+     e:"公園の大きな木の下で休みました。",ek:"こうえんのおおきなきのしたでやすみました。",eo:"공원의 큰 나무 아래에서 쉬었습니다."},
+    {kanji:true, c:"金", on:["キン","コン"], kun:["かね"],
+     w:"お金",r:"おかね",k:"돈",
+     e:"財布にお金があまりありません。",ek:"さいふにおかねがあまりありません。",eo:"지갑에 돈이 별로 없습니다."},
+    {kanji:true, c:"土", on:["ド","ト"], kun:["つち"],
+     w:"土曜日",r:"どようび",k:"토요일",
+     e:"土曜日は家で映画を見ます。",ek:"どようびはいえでえいがをみます。",eo:"토요일은 집에서 영화를 봅니다."}
+  ]
+},
+{
+  t:"때",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 03", t:"때",
+     lead:"시계와 달력에 붙는 글자. 前과 後는 시간에도 쓰고 자리에도 쓴다 — 午前 · 午後, 駅の前 · 後ろ.",
+     peek:["年","時","午","前","後","今","毎","半","間"]},
+    {kanji:true, c:"年", on:["ネン"], kun:["とし"],
+     w:"来年",r:"らいねん",k:"내년",
+     e:"来年から大学に通います。",ek:"らいねんからだいがくにかよいます。",eo:"내년부터 대학에 다닙니다."},
+    {kanji:true, c:"時", on:["ジ"], kun:["とき"],
+     w:"時間",r:"じかん",k:"시간",
+     e:"駅まで時間がどのくらいかかりますか。",ek:"えきまでじかんがどのくらいかかりますか。",eo:"역까지 시간이 얼마나 걸립니까?"},
+    {kanji:true, c:"午", on:["ゴ"], kun:[],
+     w:"午後",r:"ごご",k:"오후",
+     e:"午後は図書館で勉強します。",ek:"ごごはとしょかんでべんきょうします。",eo:"오후에는 도서관에서 공부합니다."},
+    {kanji:true, c:"前", on:["ゼン"], kun:["まえ"],
+     w:"午前",r:"ごぜん",k:"오전",
+     e:"午前中に部屋を掃除しました。",ek:"ごぜんちゅうにへやをそうじしました。",eo:"오전 중에 방을 청소했습니다."},
+    {kanji:true, c:"後", on:["ゴ","コウ"], kun:["あと","うし(ろ)"],
+     w:"後ろ",r:"うしろ",k:"뒤",
+     e:"駅の後ろに大きな公園があります。",ek:"えきのうしろにおおきなこうえんがあります。",eo:"역 뒤에 큰 공원이 있습니다."},
+    {kanji:true, c:"今", on:["コン","キン"], kun:["いま"],
+     w:"今週",r:"こんしゅう",k:"이번 주",
+     e:"今週は仕事がとても忙しいです。",ek:"こんしゅうはしごとがとてもいそがしいです。",eo:"이번 주는 일이 매우 바쁩니다."},
+    {kanji:true, c:"毎", on:["マイ"], kun:[],
+     w:"毎朝",r:"まいあさ",k:"매일 아침",
+     e:"毎朝、コーヒーを一杯飲みます。",ek:"まいあさ、コーヒーをいっぱいのみます。",eo:"매일 아침 커피를 한 잔 마십니다."},
+    {kanji:true, c:"半", on:["ハン"], kun:["なか(ば)"],
+     w:"半分",r:"はんぶん",k:"절반, 반",
+     e:"ケーキを半分に切りました。",ek:"ケーキをはんぶんにきりました。",eo:"케이크를 반으로 잘랐습니다."},
+    {kanji:true, c:"間", on:["カン","ケン"], kun:["あいだ","ま"],
+     w:"間",r:"あいだ",k:"사이",
+     e:"銀行と本屋の間にカフェがあります。",ek:"ぎんこうとほんやのあいだにカフェがあります。",eo:"은행과 서점 사이에 카페가 있습니다."}
+  ]
+},
+{
+  t:"사람",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 04", t:"사람",
+     lead:"사람과 가족. 父 · 母는 내 가족을 말할 때(ちち · はは)와 남의 가족을 부를 때(お父さん · お母さん) 읽기가 달라진다.",
+     peek:["人","男","女","子","父","母","友"]},
+    {kanji:true, c:"人", on:["ジン","ニン"], kun:["ひと"],
+     w:"何人",r:"なんにん",k:"몇 명",
+     e:"クラスに学生は何人いますか。",ek:"クラスにがくせいはなんにんいますか。",eo:"반에 학생은 몇 명 있습니까?"},
+    {kanji:true, c:"男", on:["ダン","ナン"], kun:["おとこ"],
+     w:"男",r:"おとこ",k:"남자",
+     e:"あの背の高い男の人は誰ですか。",ek:"あのせのたかいおとこのひとはだれですか。",eo:"저 키 큰 남자는 누구입니까?"},
+    {kanji:true, c:"女", on:["ジョ","ニョ"], kun:["おんな"],
+     w:"彼女",r:"かのじょ",k:"그녀, 여자친구",
+     e:"彼女は駅の前で待っています。",ek:"かのじょはえきのまえでまっています。",eo:"그녀는 역 앞에서 기다리고 있습니다."},
+    {kanji:true, c:"子", on:["シ","ス"], kun:["こ"],
+     w:"子供",r:"こども",k:"아이, 자녀",
+     e:"公園で子供たちが遊んでいます。",ek:"こうえんでこどもたちがあそんでいます。",eo:"공원에서 아이들이 놀고 있습니다."},
+    {kanji:true, c:"父", on:["フ"], kun:["ちち"],
+     w:"父",r:"ちち",k:"아버지 (내 아버지)",
+     e:"父は銀行で働いています。",ek:"ちちはぎんこうではたらいています。",eo:"아버지는 은행에서 일합니다."},
+    {kanji:true, c:"母", on:["ボ"], kun:["はは"],
+     w:"母",r:"はは",k:"어머니 (내 어머니)",
+     e:"母に長い手紙を書きました。",ek:"ははにながいてがみをかきました。",eo:"어머니께 긴 편지를 썼습니다."},
+    {kanji:true, c:"友", on:["ユウ"], kun:["とも"],
+     w:"友達",r:"ともだち",k:"친구",
+     e:"週末は友達と映画を見に行きます。",ek:"しゅうまつはともだちとえいがをみにいきます。",eo:"주말에는 친구와 영화를 보러 갑니다."}
+  ]
+},
+{
+  t:"자연",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 05", t:"자연",
+     lead:"산과 강, 하늘과 비. 気는 혼자서는 거의 안 쓰고 天気 · 元気처럼 다른 글자에 붙어서 나온다.",
+     peek:["山","川","天","雨","気"]},
+    {kanji:true, c:"山", on:["サン"], kun:["やま"],
+     w:"山",r:"やま",k:"산",
+     e:"日曜日に友達と山に登りました。",ek:"にちようびにともだちとやまにのぼりました。",eo:"일요일에 친구와 산에 올랐습니다."},
+    {kanji:true, c:"川", on:["セン"], kun:["かわ"],
+     w:"川",r:"かわ",k:"강",
+     e:"この川の水はとてもきれいです。",ek:"このかわのみずはとてもきれいです。",eo:"이 강물은 매우 깨끗합니다."},
+    {kanji:true, c:"天", on:["テン"], kun:[],
+     w:"天気",r:"てんき",k:"날씨",
+     e:"明日は天気がよくなるそうです。",ek:"あしたはてんきがよくなるそうです。",eo:"내일은 날씨가 좋아진다고 합니다."},
+    {kanji:true, c:"雨", on:["ウ"], kun:["あめ"],
+     w:"雨",r:"あめ",k:"비",
+     e:"午後から雨が強くなりました。",ek:"ごごからあめがつよくなりました。",eo:"오후부터 비가 강해졌습니다."},
+    {kanji:true, c:"気", on:["キ","ケ"], kun:[],
+     w:"元気",r:"げんき",k:"건강함, 잘 지냄",
+     e:"祖母は九十歳ですが、とても元気です。",ek:"そぼはきゅうじゅうさいですが、とてもげんきです。",eo:"할머니는 아흔 살이지만 매우 정정하십니다."}
+  ]
+},
+{
+  t:"위치 · 방향",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 06", t:"위치 · 방향",
+     lead:"위아래 · 좌우 · 안팎 · 동서남북. 길을 묻고 알려줄 때 쓰는 글자들이다.",
+     peek:["上","下","右","左","中","外","北","南","東","西"]},
+    {kanji:true, c:"上", on:["ジョウ"], kun:["うえ","あ(げる)","のぼ(る)"],
+     w:"上手",r:"じょうず",k:"잘함, 능숙함",
+     e:"妹は歌がとても上手です。",ek:"いもうとはうたがとてもじょうずです。",eo:"여동생은 노래를 매우 잘합니다."},
+    {kanji:true, c:"下", on:["カ","ゲ"], kun:["した","さ(げる)","お(りる)"],
+     w:"地下鉄",r:"ちかてつ",k:"지하철",
+     e:"地下鉄で会社に行きます。",ek:"ちかてつでかいしゃにいきます。",eo:"지하철로 회사에 갑니다."},
+    {kanji:true, c:"右", on:["ウ","ユウ"], kun:["みぎ"],
+     w:"右",r:"みぎ",k:"오른쪽",
+     e:"エレベーターは右の奥にあります。",ek:"エレベーターはみぎのおくにあります。",eo:"엘리베이터는 오른쪽 안쪽에 있습니다."},
+    {kanji:true, c:"左", on:["サ"], kun:["ひだり"],
+     w:"左",r:"ひだり",k:"왼쪽",
+     e:"銀行は郵便局の左にあります。",ek:"ぎんこうはゆうびんきょくのひだりにあります。",eo:"은행은 우체국 왼쪽에 있습니다."},
+    {kanji:true, c:"中", on:["チュウ"], kun:["なか"],
+     w:"中",r:"なか",k:"안, 속",
+     e:"かばんの中に何が入っていますか。",ek:"かばんのなかになにがはいっていますか。",eo:"가방 안에 무엇이 들어 있습니까?"},
+    {kanji:true, c:"外", on:["ガイ","ゲ"], kun:["そと","ほか","はず(す)"],
+     w:"外国",r:"がいこく",k:"외국",
+     e:"一度、外国に住んでみたいです。",ek:"いちど、がいこくにすんでみたいです。",eo:"한 번 외국에 살아 보고 싶습니다."},
+    {kanji:true, c:"北", on:["ホク"], kun:["きた"],
+     w:"北",r:"きた",k:"북쪽",
+     e:"この町の北に高い山があります。",ek:"このまちのきたにたかいやまがあります。",eo:"이 마을 북쪽에 높은 산이 있습니다."},
+    {kanji:true, c:"南", on:["ナン"], kun:["みなみ"],
+     w:"南",r:"みなみ",k:"남쪽",
+     e:"冬は南の島へ行きたいです。",ek:"ふゆはみなみのしまへいきたいです。",eo:"겨울에는 남쪽 섬에 가고 싶습니다."},
+    {kanji:true, c:"東", on:["トウ"], kun:["ひがし"],
+     w:"東",r:"ひがし",k:"동쪽",
+     e:"駅の東口で会いましょう。",ek:"えきのひがしぐちであいましょう。",eo:"역 동쪽 출구에서 만납시다."},
+    {kanji:true, c:"西", on:["セイ","サイ"], kun:["にし"],
+     w:"西",r:"にし",k:"서쪽",
+     e:"窓から西の空が見えます。",ek:"まどからにしのそらがみえます。",eo:"창문으로 서쪽 하늘이 보입니다."}
+  ]
+},
+{
+  t:"크기 · 모양",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 07", t:"크기 · 모양",
+     lead:"크다 · 작다 · 길다 · 높다 · 희다. 뒤에 가나를 붙이면 그대로 형용사가 된다 — 大きい · 長い · 白い.",
+     peek:["大","小","長","高","白"]},
+    {kanji:true, c:"大", on:["ダイ","タイ"], kun:["おお","おお(きい)"],
+     w:"大学",r:"だいがく",k:"대학",
+     e:"兄は東京の大学に通っています。",ek:"あにはとうきょうのだいがくにかよっています。",eo:"형은 도쿄의 대학에 다니고 있습니다."},
+    {kanji:true, c:"小", on:["ショウ"], kun:["ちい(さい)","こ"],
+     w:"小学校",r:"しょうがっこう",k:"초등학교",
+     e:"弟は小学校の三年生です。",ek:"おとうとはしょうがっこうのさんねんせいです。",eo:"남동생은 초등학교 3학년입니다."},
+    {kanji:true, c:"長", on:["チョウ"], kun:["なが(い)"],
+     w:"長い",r:"ながい",k:"길다",
+     e:"長い時間、電車に乗りました。",ek:"ながいじかん、でんしゃにのりました。",eo:"오랜 시간 전철을 탔습니다."},
+    {kanji:true, c:"高", on:["コウ"], kun:["たか(い)"],
+     w:"高い",r:"たかい",k:"비싸다, 높다",
+     e:"駅の前のホテルはとても高いです。",ek:"えきのまえのホテルはとてもたかいです。",eo:"역 앞의 호텔은 매우 비쌉니다."},
+    {kanji:true, c:"白", on:["ハク"], kun:["しろ","しろ(い)"],
+     w:"白い",r:"しろい",k:"하얗다",
+     e:"白い猫が窓の外にいます。",ek:"しろいねこがまどのそとにいます。",eo:"하얀 고양이가 창문 밖에 있습니다."}
+  ]
+},
+{
+  t:"움직임",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 08", t:"움직임",
+     lead:"들어가고 나오고, 쉬고, 보고 듣고 먹고 읽고 쓴다. 뒤에 붙는 가나에 따라 동사가 된다 — 入る · 入れる.",
+     peek:["入","出","休","見","行","来","食","聞","読","書"]},
+    {kanji:true, c:"入", on:["ニュウ"], kun:["い(る)","い(れる)","はい(る)"],
+     w:"入口",r:"いりぐち",k:"입구",
+     e:"デパートの入口で友達を待ちます。",ek:"デパートのいりぐちでともだちをまちます。",eo:"백화점 입구에서 친구를 기다립니다."},
+    {kanji:true, c:"出", on:["シュツ"], kun:["で(る)","だ(す)"],
+     w:"出発",r:"しゅっぱつ",k:"출발",
+     e:"バスは八時に出発します。",ek:"バスははちじにしゅっぱつします。",eo:"버스는 8시에 출발합니다."},
+    {kanji:true, c:"休", on:["キュウ"], kun:["やす(む)"],
+     w:"休み",r:"やすみ",k:"휴일, 휴식",
+     e:"来週から夏休みです。",ek:"らいしゅうからなつやすみです。",eo:"다음 주부터 여름방학입니다."},
+    {kanji:true, c:"見", on:["ケン"], kun:["み(る)","み(せる)","み(える)"],
+     w:"見る",r:"みる",k:"보다",
+     e:"夜はテレビを見る時間がありません。",ek:"よるはテレビをみるじかんがありません。",eo:"밤에는 텔레비전을 볼 시간이 없습니다."},
+    {kanji:true, c:"行", on:["コウ","ギョウ"], kun:["い(く)","おこな(う)"],
+     w:"旅行",r:"りょこう",k:"여행",
+     e:"来月、家族と旅行します。",ek:"らいげつ、かぞくとりょこうします。",eo:"다음 달에 가족과 여행합니다."},
+    {kanji:true, c:"来", on:["ライ"], kun:["く(る)","き(ます)","こ(ない)"],
+     w:"来週",r:"らいしゅう",k:"다음 주",
+     e:"来週の土曜日、友達がうちに来ます。",ek:"らいしゅうのどようび、ともだちがうちにきます。",eo:"다음 주 토요일에 친구가 우리 집에 옵니다."},
+    {kanji:true, c:"食", on:["ショク"], kun:["た(べる)","く(う)"],
+     w:"食堂",r:"しょくどう",k:"식당",
+     e:"昼ご飯は会社の食堂で食べます。",ek:"ひるごはんはかいしゃのしょくどうでたべます。",eo:"점심은 회사 식당에서 먹습니다."},
+    {kanji:true, c:"聞", on:["ブン","モン"], kun:["き(く)","き(こえる)"],
+     w:"新聞",r:"しんぶん",k:"신문",
+     e:"駅の売店で新聞を買いました。",ek:"えきのばいてんでしんぶんをかいました。",eo:"역 매점에서 신문을 샀습니다."},
+    {kanji:true, c:"読", on:["ドク","トク"], kun:["よ(む)"],
+     w:"読む",r:"よむ",k:"읽다",
+     e:"電車の中で本を読むのが好きです。",ek:"でんしゃのなかでほんをよむのがすきです。",eo:"전철 안에서 책 읽는 것을 좋아합니다."},
+    {kanji:true, c:"書", on:["ショ"], kun:["か(く)"],
+     w:"辞書",r:"じしょ",k:"사전",
+     e:"わからない言葉は辞書で調べます。",ek:"わからないことばはじしょでしらべます。",eo:"모르는 말은 사전에서 찾아봅니다."}
+  ]
+},
+{
+  t:"학교 · 말",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 09", t:"학교 · 말",
+     lead:"학교와 선생님, 이름과 말. 学은 学生 · 学校 · 大学처럼 교실 어디에나 붙어 있다.",
+     peek:["学","校","先","生","名","語","話"]},
+    {kanji:true, c:"学", on:["ガク"], kun:["まな(ぶ)"],
+     w:"学生",r:"がくせい",k:"학생",
+     e:"学生のとき、よく図書館に行きました。",ek:"がくせいのとき、よくとしょかんにいきました。",eo:"학생 때 자주 도서관에 갔습니다."},
+    {kanji:true, c:"校", on:["コウ"], kun:[],
+     w:"学校",r:"がっこう",k:"학교",
+     e:"学校まで歩いて十五分です。",ek:"がっこうまであるいてじゅうごふんです。",eo:"학교까지 걸어서 15분입니다."},
+    {kanji:true, c:"先", on:["セン"], kun:["さき"],
+     w:"先月",r:"せんげつ",k:"지난달",
+     e:"先月、新しい部屋に引っ越しました。",ek:"せんげつ、あたらしいへやにひっこしました。",eo:"지난달에 새 방으로 이사했습니다."},
+    {kanji:true, c:"生", on:["セイ","ショウ"], kun:["い(きる)","う(まれる)","なま"],
+     w:"先生",r:"せんせい",k:"선생님",
+     e:"先生の説明はとてもわかりやすいです。",ek:"せんせいのせつめいはとてもわかりやすいです。",eo:"선생님의 설명은 매우 알기 쉽습니다."},
+    {kanji:true, c:"名", on:["メイ","ミョウ"], kun:["な"],
+     w:"名前",r:"なまえ",k:"이름",
+     e:"うちの犬の名前はポチです。",ek:"うちのいぬのなまえはポチです。",eo:"우리 개 이름은 포치입니다."},
+    {kanji:true, c:"語", on:["ゴ"], kun:["かた(る)"],
+     w:"日本語",r:"にほんご",k:"일본어",
+     e:"毎晩一時間、日本語を勉強しています。",ek:"まいばんいちじかん、にほんごをべんきょうしています。",eo:"매일 밤 한 시간씩 일본어를 공부하고 있습니다."},
+    {kanji:true, c:"話", on:["ワ"], kun:["はな(す)","はなし"],
+     w:"電話",r:"でんわ",k:"전화",
+     e:"夜、母に電話をかけました。",ek:"よる、ははにでんわをかけました。",eo:"밤에 어머니께 전화를 걸었습니다."}
+  ]
+},
+{
+  t:"그 밖",
+  kind:"kanji",
+  lv:"N5",
+  items:[
+    {cover:true, no:"한자 10", t:"그 밖",
+     lead:"책 · 차 · 전기 · 나라 · 무엇. 한 글자로도, 다른 글자와 붙어서도 자주 나온다 — 本 · 日本 · 本屋.",
+     peek:["本","車","電","国","何"]},
+    {kanji:true, c:"本", on:["ホン"], kun:["もと"],
+     w:"本屋",r:"ほんや",k:"서점",
+     e:"駅の近くに大きな本屋があります。",ek:"えきのちかくにおおきなほんやがあります。",eo:"역 근처에 큰 서점이 있습니다."},
+    {kanji:true, c:"車", on:["シャ"], kun:["くるま"],
+     w:"自転車",r:"じてんしゃ",k:"자전거",
+     e:"毎日自転車で学校に通っています。",ek:"まいにちじてんしゃでがっこうにかよっています。",eo:"매일 자전거로 학교에 다니고 있습니다."},
+    {kanji:true, c:"電", on:["デン"], kun:[],
+     w:"電車",r:"でんしゃ",k:"전철",
+     e:"朝の電車はいつも込んでいます。",ek:"あさのでんしゃはいつもこんでいます。",eo:"아침 전철은 늘 붐빕니다."},
+    {kanji:true, c:"国", on:["コク"], kun:["くに"],
+     w:"韓国",r:"かんこく",k:"한국",
+     e:"韓国の料理が大好きです。",ek:"かんこくのりょうりがだいすきです。",eo:"한국 요리를 정말 좋아합니다."},
+    {kanji:true, c:"何", on:["カ"], kun:["なに","なん"],
+     w:"何時",r:"なんじ",k:"몇 시",
+     e:"明日は何時に起きますか。",ek:"あしたはなんじにおきますか。",eo:"내일은 몇 시에 일어납니까?"}
+  ]
 }
 ];
 
@@ -8396,7 +8786,7 @@ const DATA = [
 const WORDS = [];
 let wordNo = 0;
 DATA.forEach((sec, si) => sec.items.forEach((it, j) => {
-  const plain = !it.cover && !it.note && !it.conj && !it.pair && !it.adjc;
+  const plain = !it.cover && !it.note && !it.conj && !it.pair && !it.adjc && !it.kanji;
   if(plain) wordNo++;
   // 활용 카드는 강의마다 같은 동사가 다시 나온다 (買う가 〜たい에도 〜て형에도 있음).
   // 그래서 목표 형태(say)까지 넣어야 key가 갈린다. 안 그러면 예문 캐시와 책갈피가 섞인다.
@@ -8411,6 +8801,8 @@ DATA.forEach((sec, si) => sec.items.forEach((it, j) => {
             // 형태가 아예 같다(見られる · 来られる). ㉖ 尊敬의 〜られる도 같은 소리다.
             // 그래서 conj에도 tag를 둔다. 안 적으면 지금까지와 같은 key다.
             : it.conj ? 'conj|' + it.w + '|' + it.say + (it.tag ? '|' + it.tag : '')
+            // 한자 카드는 한 글자에 한 장이라 글자 자체가 key다
+            : it.kanji ? 'kanji|' + it.c
             : it.w + '|' + it.r;
   WORDS.push({...it, si, sec:sec.t, kind:sec.kind || 'word', key, n:plain ? wordNo : null});
 }));
@@ -8422,7 +8814,8 @@ const SEC_INFO = DATA.map((sec, si) => {
           first:WORDS.findIndex(w => w.si === si),
           kind:sec.kind || 'word',
           lv:sec.lv || 'N5',                          // 목차를 N5 / N4로 크게 묶는다
-          count:items.filter(w => !w.cover).length,   // 표지는 항목 수에서 뺀다
+          // 표지는 항목 수에서 뺀다. 한자 책은 설명 카드도 빼고 글자 수만 센다
+          count:items.filter(w => sec.kind === 'kanji' ? w.kanji : !w.cover).length,
           from:plains.length ? plains[0].n : null,
           to:plains.length ? plains[plains.length - 1].n : null};
 });
@@ -8433,7 +8826,7 @@ const SEC_INFO = DATA.map((sec, si) => {
    ============================================================ */
 // 저장하는 것 전부. 내보내기·가져오기가 이 목록을 그대로 쓴다.
 const STORE_KEYS = ['kangi-bookmarks', 'kangi-mode', 'kangi-anchor-word',
-                    'kangi-anchor-grammar', 'kangi-rate', 'kangi-toc-shut', 'kangi-night'];
+                    'kangi-anchor-grammar', 'kangi-anchor-kanji', 'kangi-rate', 'kangi-toc-shut', 'kangi-night'];
 let storeBroken = false;
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
@@ -8455,10 +8848,16 @@ const marks = new Set();
 WORDS.forEach((w, i) => { if(markedKeys.has(w.key)) marks.add(i); });
 const saveMarks = () => store.set('kangi-bookmarks', [...marks].map(i => WORDS[i].key));
 
-// 「단어」와 「문법」은 각각 별개의 책처럼 다룬다.
+// 「단어」 「문법」 「한자」는 각각 별개의 책처럼 다룬다.
 // 목차·쪽수·읽던 위치가 모드마다 따로 유지된다.
+const MODES = ['word', 'grammar', 'kanji'];
+const MODE_NAME = {word:'단어', grammar:'문법', kanji:'한자'};
 let mode = store.get('kangi-mode', 'word');
-if(mode !== 'word' && mode !== 'grammar') mode = 'word';
+if(MODES.indexOf(mode) < 0) mode = 'word';
+
+// 한자 카드의 예시 단어가 단어장에 있으면 누를 때 그 단어로 넘어간다
+const WORD_AT = new Map();
+WORDS.forEach((w, i) => { if(w.n !== null && !WORD_AT.has(w.w)) WORD_AT.set(w.w, i); });
 
 // 책갈피만 모아 읽기. 일부러 저장하지 않는다 —
 // 다음에 열었을 때 책이 반 토막 나 있으면 고장 난 것처럼 보이기 때문.
@@ -8595,7 +8994,8 @@ function buildEx(item, plain){
 function coverHTML(item){
   const info = SEC_INFO[item.si] || {};
   // 문법 표지는 sub/meta를 직접 적고, 단어 표지는 섹션에서 계산한다
-  const sub  = item.sub  || (info.from ? info.count + '단어 · ' + info.from + '–' + info.to + '번' : '');
+  const sub  = item.sub  || (info.from ? info.count + '단어 · ' + info.from + '–' + info.to + '번'
+                            : info.kind === 'kanji' ? info.count + '자' : '');
   const meta = item.meta || '';
   const body = item.bullets
     ? '<ul class="cv-list">' + item.bullets.map(b => '<li>' + esc(b) + '</li>').join('') + '</ul>'
@@ -8715,8 +9115,83 @@ function adjcHTML(item, idx){
   '</article>';
 }
 
+// 읽기 옆에 붙이는 한글 소리. 가나 한 자를 한글 한 자로 그대로 옮긴다 (キュウ → 큐우).
+// 청음은 거센소리(カ 카 · タ 타), 탁음은 예사소리(ガ 가 · ダ 다)로 갈라 둘이 섞이지 않게 한다.
+// っ은 앞 글자의 ㅅ 받침, ん은 ㄴ 받침. 괄호(활용 어미 표시)는 그대로 둔다.
+const KANA_KO = (() => {
+  const rows = {
+    'あいうえお':'아이우에오', 'かきくけこ':'카키쿠케코', 'がぎぐげご':'가기구게고',
+    'さしすせそ':'사시스세소', 'ざじずぜぞ':'자지즈제조', 'たちつてと':'타치츠테토',
+    'だぢづでど':'다지즈데도', 'なにぬねの':'나니누네노', 'はひふへほ':'하히후헤호',
+    'ばびぶべぼ':'바비부베보', 'ぱぴぷぺぽ':'파피푸페포', 'まみむめも':'마미무메모',
+    'やゆよ':'야유요', 'らりるれろ':'라리루레로', 'わを':'와오'
+  };
+  const m = {};
+  Object.keys(rows).forEach(k => [...k].forEach((c, i) => { m[c] = rows[k][i]; }));
+  return m;
+})();
+function kanaToKo(s){
+  const H = 0xAC00;
+  const out = [];
+  for(const ch of String(s)){
+    const c = /[ァ-ヶ]/.test(ch) ? String.fromCharCode(ch.charCodeAt(0) - 0x60) : ch;
+    const last = out.length - 1;
+    const syl = last >= 0 ? out[last].charCodeAt(0) - H : -1;
+    const isSyl = syl >= 0 && syl < 11172;
+    if((c === 'っ' || c === 'ん') && isSyl && syl % 28 === 0){
+      out[last] = String.fromCharCode(H + syl + (c === 'っ' ? 19 : 4));   // ㅅ · ㄴ 받침
+    } else if('ゃゅょ'.includes(c) && isSyl && syl % 28 === 0){
+      // 앞 글자의 첫소리에 ㅑ·ㅠ·ㅛ를 붙인다. ㅈ·ㅊ는 소리가 겹치므로 ㅏ·ㅜ·ㅗ (じゃ 자 · ちゅ 추)
+      const cho = Math.floor(syl / 588);
+      const v = (cho === 12 || cho === 14) ? {ゃ:0, ゅ:13, ょ:8}[c] : {ゃ:2, ゅ:17, ょ:12}[c];
+      out[last] = String.fromCharCode(H + cho * 588 + v * 28);
+    } else if(c === 'ー'){
+      // 장음 표시는 소리로 옮기지 않는다
+    } else {
+      out.push(KANA_KO[c] || c);
+    }
+  }
+  return out.join('');
+}
+
+// 한자 카드 — 한 글자 · 음독 · 훈독 · 예시 단어 하나 · 예문 하나. 가리는 것 없이 다 보인다.
+// 예시 단어가 단어장에 있으면 누를 수 있게 한다 (단어 책의 그 카드로 넘어간다).
+function kanjiHTML(item, idx){
+  const on = marks.has(idx);
+  // 읽기 하나마다 「イチ 이치」를 한 덩어리로 묶는다 — 좁은 화면에서 둘이 따로 줄바꿈되지 않게
+  const reads = (label, list) =>
+    '<div class="kc-row"><em>' + label + '</em>' +
+      (list.length ? '<span class="kc-list">' + list.map(x =>
+                       '<span class="kc-r"><span class="jp">' + esc(x) + '</span>' +
+                       '<span class="kc-ko">' + esc(kanaToKo(x)) + '</span></span>').join('') + '</span>'
+                   : '<span class="kc-none">—</span>') +
+    '</div>';
+  const at = WORD_AT.get(item.w);
+  const word = '<b class="jp">' + esc(item.w) + '</b>' +
+    (item.r !== item.w ? '<span class="read jp">' + esc(item.r) + '</span>' : '') +
+    '<span class="mean-inline">' + esc(item.k) + '</span>';
+  return '<article class="entry kanji' + (on ? ' marked' : '') + '" data-i="' + idx + '">' +
+    '<div class="kc-top">' +
+      '<div class="kc-char jp">' + esc(item.c) + '</div>' +
+      '<div class="kc-reads">' + reads('음독', item.on) + reads('훈독', item.kun) + '</div>' +
+      '<span class="pos">' + esc(SEC_INFO[item.si].lv) + '</span>' +
+      '<button class="ibtn mark' + (on ? ' on' : '') + '" type="button" data-mark="' + idx + '" ' +
+        'aria-pressed="' + on + '" aria-label="책갈피">' + ICON.mark + '</button>' +
+    '</div>' +
+    '<div class="kc-word">' +
+      (at !== undefined
+        ? '<button class="klink" type="button" data-goto="' + at + '">' + word +
+            '<span class="go">단어장 →</span></button>'
+        : word) +
+      spkBtn(item.r) +
+    '</div>' +
+    exHTML(item) +
+  '</article>';
+}
+
 function entryHTML(item, idx){
   if(item.cover) return coverHTML(item);
+  if(item.kanji) return kanjiHTML(item, idx);
   if(item.note) return noteHTML(item);
   if(item.pair) return pairHTML(item, idx);
   if(item.adjc) return adjcHTML(item, idx);
@@ -9025,6 +9500,16 @@ spreadEl.addEventListener('click', e => {
   const spk = e.target.closest('.spk');
   if(spk){ speak(spk.dataset.say, spk); return; }
 
+  // 한자 카드의 예시 단어 → 단어 책의 그 카드. 한자 책의 읽던 위치는 그대로 남으므로
+  // 위의 「한자」를 누르면 보던 곳으로 돌아온다.
+  const kl = e.target.closest('.klink');
+  if(kl){
+    const i = Number(kl.dataset.goto);
+    setMode(WORDS[i].kind);
+    goTo(PAGE_OF[i], i);
+    return;
+  }
+
   const mk = e.target.closest('.mark');
   if(mk){
     const i = Number(mk.dataset.mark);
@@ -9197,6 +9682,18 @@ WORDS.forEach((w, i) => {
     });
     return;
   }
+  // 한자 카드는 글자 · 읽기(괄호는 떼고) · 예시 단어로 찾힌다.
+  // 음독은 가타카나지만 norm이 히라가나로 맞춰주므로 「がく」로 쳐도 된다.
+  if(w.kanji){
+    SEARCH.push({
+      i,
+      head: [w.c, ...w.on, ...w.kun.map(x => x.replace(/[()]/g, '')), w.w, w.r].map(norm).join(' '),
+      mean: norm(w.k),
+      body: [w.e, w.ek, w.eo].map(norm).join(' '),
+      c: w.c
+    });
+    return;
+  }
   if(w.pair){
     SEARCH.push({
       i,
@@ -9276,16 +9773,17 @@ function search(qRaw){
       else if(s.body.includes(t)) v = 3;
       if(v >= 0 && (score < 0 || v < score)) score = v;
     }
-    if(score >= 0) hits.push({i:s.i, score});
+    // 한 글자를 그대로 쳤으면 그 한자 카드를 맨 위에 — 「日」로 치면 日이 든 단어 스무 개가 먼저 나온다
+    if(score >= 0) hits.push({i:s.i, score, pin:s.c === q});
   }
-  hits.sort((a, b) => a.score - b.score || a.i - b.i);
+  hits.sort((a, b) => b.pin - a.pin || a.score - b.score || a.i - b.i);
   return hits.slice(0, 80);
 }
 
 // 결과가 다른 모드에 있으면 쪽번호 대신 어느 쪽 책인지 표시한다
 function locLabel(i){
   if(WORDS[i].kind !== mode)
-    return '<span class="p alt">' + (WORDS[i].kind === 'grammar' ? '문법' : '단어') + '</span>';
+    return '<span class="p alt">' + MODE_NAME[WORDS[i].kind] + '</span>';
   return '<span class="p">p.' + (PAGE_OF[i] + 1) + '</span>';
 }
 
@@ -9318,6 +9816,12 @@ function renderSearch(){
         return '<button class="dlink" type="button" data-focus="' + h.i + '">' +
           '<span><span class="jpw">' + esc(it.t) + '</span>' +
           '<span class="tag">설명</span></span>' + locLabel(h.i) + '</button>';
+      }
+      if(it.kanji){
+        return '<button class="dlink" type="button" data-focus="' + h.i + '">' +
+          '<span><span class="jpw jp">' + esc(it.c) + '</span> ' +
+          '<span class="sub jp">' + esc([...it.on, ...it.kun].join(' · ')) + '</span>' +
+          '<span class="tag">한자</span></span>' + locLabel(h.i) + '</button>';
       }
       // 활용 카드는 같은 동사가 강의마다 나오므로 목표 형태까지 보여줘야 구분된다
       if(it.pair){
@@ -9353,8 +9857,8 @@ function renderDrawer(){
       const body = secs.length
         ? secs.map(s => {
             const p = PAGE_OF[s.first];
-            const sub = s.kind === 'grammar'
-              ? s.count + '개 항목'
+            const sub = s.kind === 'grammar' ? s.count + '개 항목'
+              : s.kind === 'kanji' ? s.count + '자'
               : s.from + '–' + s.to + '번 · ' + s.count + '단어';
             return '<button class="dlink" type="button" data-focus="' + s.first + '">' +
               '<span>' + esc(s.title) + '<br><span class="sub">' + sub + '</span></span>' +
@@ -9362,9 +9866,10 @@ function renderDrawer(){
             '</button>';
           }).join('')
         : '<p class="dsoon">아직 없습니다. 로드맵대로 채워 나갑니다.</p>';
-      const count = secs.length
-        ? secs.length + (mode === 'grammar' ? '편' : '개 주제')
-        : '준비 중';
+      const count = !secs.length ? '준비 중'
+        : mode === 'grammar' ? secs.length + '편'
+        : mode === 'kanji' ? secs.length + '묶음 · ' + secs.reduce((n, s) => n + s.count, 0) + '자'
+        : secs.length + '개 주제';
       return '<section class="dgrp' + (open ? ' open' : '') + '">' +
         '<button class="dgrp-h" type="button" data-grp="' + lv + '" aria-expanded="' + open + '">' +
           '<span class="dgrp-lv">' + lv + '</span>' +
@@ -9384,7 +9889,7 @@ function renderDrawer(){
           ? '<button class="dbtn wide" data-act="only">' +
               (markedOnly ? '전체 책으로 돌아가기' : '책갈피만 모아 읽기 · ' + inMode + '개') +
             '</button>'
-          : '<p class="dnote">이 책(' + (mode === 'word' ? '단어' : '문법') + ')에는 책갈피가 없습니다.</p>') +
+          : '<p class="dnote">이 책(' + MODE_NAME[mode] + ')에는 책갈피가 없습니다.</p>') +
         '<div class="dfoot-row">' +
           '<button class="dbtn" data-act="export">파일로 내보내기</button>' +
           '<button class="dbtn" data-act="import">파일에서 가져오기</button>' +
@@ -9400,8 +9905,9 @@ function renderDrawer(){
     drawerBody.innerHTML = list.map(i => {
       const it = WORDS[i];
       // 짝 카드에는 w·k가 없다 (a·b 두 짝으로 들어있다). 그대로 찍으면 undefined가 나온다.
-      const head = it.pair ? esc(it.a.w) + ' ↔ ' + esc(it.b.w) : esc(it.w);
-      const sub  = it.pair ? it.la + '/' + it.lb : it.k;
+      // 한자 카드의 w·k는 예시 단어다. 책갈피 목록에는 글자와 읽기를 보인다.
+      const head = it.pair ? esc(it.a.w) + ' ↔ ' + esc(it.b.w) : esc(it.kanji ? it.c : it.w);
+      const sub  = it.pair ? it.la + '/' + it.lb : it.kanji ? [...it.on, ...it.kun].join(' · ') : it.k;
       return '<button class="dlink" type="button" data-focus="' + i + '">' +
         '<span><span class="jpw jp">' + head + '</span> ' +
         '<span class="sub">' + esc(sub) + '</span></span>' +

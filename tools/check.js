@@ -57,6 +57,7 @@ const KEY = (it, si, j) =>
   : it.pair  ? 'pair|'  + it.a.w + '|' + it.b.w
   : it.adjc  ? 'adjc|'  + it.w + '|' + it.r + (it.tag ? '|' + it.tag : '')
   : it.conj  ? 'conj|'  + it.w + '|' + it.say + (it.tag ? '|' + it.tag : '')
+  : it.kanji ? 'kanji|' + it.c
   :            it.w + '|' + it.r;
 
 const HANGUL = /[가-힣]/;
@@ -66,7 +67,7 @@ const KANJI  = /[一-鿿々]/;
 const LATIN_OK = /^(https?:|[A-Z]{1,4}$)/;
 
 const seen = new Map();
-let n = { cover:0, note:0, conj:0, pair:0, adjc:0, word:0, ex:0, ex2:0 };
+let n = { cover:0, note:0, conj:0, pair:0, adjc:0, kanji:0, word:0, ex:0, ex2:0 };
 
 DATA.forEach((sec, si) => {
   const where = (sec.t || '섹션 ' + si);
@@ -74,7 +75,10 @@ DATA.forEach((sec, si) => {
 
   sec.items.forEach((it, j) => {
     const kind = it.cover ? 'cover' : it.note ? 'note' : it.conj ? 'conj'
-               : it.pair ? 'pair' : it.adjc ? 'adjc' : 'word';
+               : it.pair ? 'pair' : it.adjc ? 'adjc' : it.kanji ? 'kanji' : 'word';
+    // 표지와 설명 카드는 어느 책에나 올 수 있다 (한자 책 첫머리의 음독·훈독 설명)
+    if(kind !== 'cover' && kind !== 'note' && (sec.kind === 'kanji') !== (kind === 'kanji'))
+      E('한자 카드와 한자 책이 어긋난다 (한자 카드는 한자 책에만) — ' + where);
     n[kind]++;
     const tag = where + ' / ' + (it.t || it.w || (it.a && it.a.w) || j);
 
@@ -89,8 +93,28 @@ DATA.forEach((sec, si) => {
                : kind === 'pair'  ? ['la','lb','a','b']
                : kind === 'conj'  ? ['w','r','k','g','steps','say','e','ek','eo']
                : kind === 'adjc'  ? ['w','r','k','g','forms','e','ek','eo']
+               : kind === 'kanji' ? ['c','on','kun','w','r','k','e','ek','eo']
                :                    ['w','r','k','p','e','ek','eo'];
     need.forEach(f => { if(it[f] === undefined || it[f] === '') E('칸 누락 ' + f + ' — ' + tag); });
+
+    /* 한자 카드 — 한 글자 · 읽기 표기 · 예시 단어와 예문에 그 글자가 들어가는지 */
+    if(kind === 'kanji'){
+      const kt = where + ' / ' + it.c;
+      if([...String(it.c)].length !== 1 || !KANJI.test(it.c)) E('한자 칸이 한 글자가 아니다 — 「' + it.c + '」 ' + kt);
+      if(!Array.isArray(it.on) || !Array.isArray(it.kun)) E('on·kun은 목록이어야 한다 — ' + kt);
+      else {
+        if(!it.on.length && !it.kun.length) E('음독도 훈독도 없다 — ' + kt);
+        if(it.on.length > 3 || it.kun.length > 3) W('읽기는 셋까지만 — ' + kt);
+        it.on.forEach(x => { if(!/^[ァ-ヶー]+$/.test(x)) E('음독은 가타카나로 — 「' + x + '」 ' + kt); });
+        it.kun.forEach(x => { if(!/^[ぁ-ゖー]+(\([ぁ-ゖ]+\))?$/.test(x)) E('훈독은 히라가나로, 어미는 괄호로 — 「' + x + '」 ' + kt); });
+      }
+      if(it.w && !it.w.includes(it.c)) E('예시 단어에 그 한자가 없다 — ' + it.w + ' ' + kt);
+      if(it.e && !it.e.includes(it.c)) E('예문에 그 한자가 없다 — ' + it.e + ' ' + kt);
+      if(it.e && it.w && !it.e.includes(it.w)) W('예문에 예시 단어가 안 들어갔다 — ' + it.w + ' / ' + it.e);
+      // 예시 단어가 예문에 그대로 나오면 읽기도 그대로 나와야 한다 (명사 검사와 같은 이유)
+      if(it.e && it.w && it.e.includes(it.w) && !it.ek.includes(it.r))
+        E('예시 단어의 읽기가 예문 읽기에 안 나온다 — ' + it.w + ' = 「' + it.r + '」\n    ' + it.ek + '\n    ' + kt);
+    }
     if(kind === 'pair') ['w','r','k','e','ek','eo'].forEach(f => {
       ['a','b'].forEach(side => { if(!it[side] || !it[side][f]) E('칸 누락 ' + side + '.' + f + ' — ' + tag); });
     });
@@ -102,7 +126,7 @@ DATA.forEach((sec, si) => {
     /* 일본어 칸에 한글·로마자가 새지 않았는지 */
     const jpFields = [];
     if(kind === 'pair') ['a','b'].forEach(s2 => jpFields.push([s2+'.w', it[s2].w], [s2+'.e', it[s2].e], [s2+'.ek', it[s2].ek]));
-    else { ['w','e','ek','e2','ek2','say'].forEach(f => it[f] && jpFields.push([f, it[f]])); }
+    else { ['c','w','e','ek','e2','ek2','say'].forEach(f => it[f] && jpFields.push([f, it[f]])); }
     if(it.steps) it.steps.forEach((st, si2) => jpFields.push(['steps['+si2+'].t', st.t]));
     if(it.forms) it.forms.forEach((f, fi) => jpFields.push(['forms['+fi+'][1]', f[1]], ['forms['+fi+'][2]', f[2]]));
     jpFields.forEach(([f, v]) => {
@@ -190,11 +214,11 @@ DATA.forEach((sec, si) => {
 
 /* ---------- 6. 결과 ---------- */
 function report(){
-  const total = n.cover + n.note + n.conj + n.pair + n.adjc + n.word;
+  const total = n.cover + n.note + n.conj + n.pair + n.adjc + n.kanji + n.word;
   console.log('');
   console.log('  섹션 ' + DATA.length + ' · 항목 ' + total);
   console.log('  표지 ' + n.cover + ' · 설명 ' + n.note + ' · 활용 ' + n.conj +
-              ' · 짝 ' + n.pair + ' · 표 ' + n.adjc + ' · 단어 ' + n.word);
+              ' · 짝 ' + n.pair + ' · 표 ' + n.adjc + ' · 한자 ' + n.kanji + ' · 단어 ' + n.word);
   console.log('  예문 ' + n.ex + ' (둘째 예문이 있는 항목 ' + n.ex2 + ')');
   console.log('');
   if(warn.length){
