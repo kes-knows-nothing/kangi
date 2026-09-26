@@ -93,7 +93,7 @@ DATA.forEach((sec, si) => {
                : kind === 'pair'  ? ['la','lb','a','b']
                : kind === 'conj'  ? ['w','r','k','g','steps','say','e','ek','eo']
                : kind === 'adjc'  ? ['w','r','k','g','forms','e','ek','eo']
-               : kind === 'kanji' ? ['c','on','kun','w','r','k','e','ek','eo']
+               : kind === 'kanji' ? ['c','on','kun','words','e','ek','eo']
                :                    ['w','r','k','p','e','ek','eo'];
     need.forEach(f => { if(it[f] === undefined || it[f] === '') E('칸 누락 ' + f + ' — ' + tag); });
 
@@ -108,12 +108,28 @@ DATA.forEach((sec, si) => {
         it.on.forEach(x => { if(!/^[ァ-ヶー]+$/.test(x)) E('음독은 가타카나로 — 「' + x + '」 ' + kt); });
         it.kun.forEach(x => { if(!/^[ぁ-ゖー]+(\([ぁ-ゖ]+\))?$/.test(x)) E('훈독은 히라가나로, 어미는 괄호로 — 「' + x + '」 ' + kt); });
       }
-      if(it.w && !it.w.includes(it.c)) E('예시 단어에 그 한자가 없다 — ' + it.w + ' ' + kt);
-      if(it.e && !it.e.includes(it.c)) E('예문에 그 한자가 없다 — ' + it.e + ' ' + kt);
-      if(it.e && it.w && !it.e.includes(it.w)) W('예문에 예시 단어가 안 들어갔다 — ' + it.w + ' / ' + it.e);
-      // 예시 단어가 예문에 그대로 나오면 읽기도 그대로 나와야 한다 (명사 검사와 같은 이유)
-      if(it.e && it.w && it.e.includes(it.w) && !it.ek.includes(it.r))
-        E('예시 단어의 읽기가 예문 읽기에 안 나온다 — ' + it.w + ' = 「' + it.r + '」\n    ' + it.ek + '\n    ' + kt);
+      // 예시 단어는 읽기마다 하나 — 음독 단어가 먼저, 그다음 훈독 단어. 그 읽기가 없는 쪽에는 단어도 없다
+      const ws = Array.isArray(it.words) ? it.words : [];
+      if(!ws.length) E('예시 단어가 없다 — ' + kt);
+      const order = ws.map(x => x.t).join('');
+      if(!['음', '훈', '음훈'].includes(order)) E('예시 단어는 음·훈 하나씩, 음이 먼저 — 「' + order + '」 ' + kt);
+      ws.forEach(x => {
+        ['t','w','r','k'].forEach(f => { if(!x[f]) E('예시 단어 칸 누락 ' + f + ' — ' + kt); });
+        if(x.t === '음' && Array.isArray(it.on) && !it.on.length) E('음독이 없는데 음독 단어가 있다 — ' + kt);
+        if(x.t === '훈' && Array.isArray(it.kun) && !it.kun.length) E('훈독이 없는데 훈독 단어가 있다 — ' + kt);
+        if(x.w && !x.w.includes(it.c)) E('예시 단어에 그 한자가 없다 — ' + x.w + ' ' + kt);
+        // 예시 단어가 예문에 그대로 나오면 읽기도 그대로 나와야 한다 (명사 검사와 같은 이유)
+        // 한 글자 단어(人 · 上)는 다른 말 속에 든 것과 구별이 안 되므로 여기서는 보지 않는다
+        [[it.e, it.ek], [it.e2, it.ek2]].forEach(([e, ek]) => {
+          if(e && x.w && [...x.w].length > 1 && e.includes(x.w) && !ek.includes(x.r))
+            E('예시 단어의 읽기가 예문 읽기에 안 나온다 — ' + x.w + ' = 「' + x.r + '」\n    ' + ek + '\n    ' + kt);
+        });
+      });
+      [it.e, it.e2].forEach(e => { if(e && !e.includes(it.c)) E('예문에 그 한자가 없다 — ' + e + ' ' + kt); });
+      if(it.e && ws.length && !ws.some(x => it.e.includes(x.w))) W('예문에 예시 단어가 하나도 안 들어갔다 — ' + it.e);
+      // 예시 단어가 음·훈 둘이면 예문도 둘 — 둘째 예문은 첫 예문에 안 나온 쪽 단어로 쓴다
+      if(ws.length === 2 && !it.e2) E('예시 단어가 둘인데 예문이 하나다 — ' + kt);
+      if(ws.length < 2 && it.e2) E('예시 단어가 하나인데 예문이 둘이다 — ' + kt);
     }
     if(kind === 'pair') ['w','r','k','e','ek','eo'].forEach(f => {
       ['a','b'].forEach(side => { if(!it[side] || !it[side][f]) E('칸 누락 ' + side + '.' + f + ' — ' + tag); });
@@ -127,6 +143,7 @@ DATA.forEach((sec, si) => {
     const jpFields = [];
     if(kind === 'pair') ['a','b'].forEach(s2 => jpFields.push([s2+'.w', it[s2].w], [s2+'.e', it[s2].e], [s2+'.ek', it[s2].ek]));
     else { ['c','w','e','ek','e2','ek2','say'].forEach(f => it[f] && jpFields.push([f, it[f]])); }
+    if(it.words) it.words.forEach((x, wi) => jpFields.push(['words['+wi+'].w', x.w], ['words['+wi+'].r', x.r]));
     if(it.steps) it.steps.forEach((st, si2) => jpFields.push(['steps['+si2+'].t', st.t]));
     if(it.forms) it.forms.forEach((f, fi) => jpFields.push(['forms['+fi+'][1]', f[1]], ['forms['+fi+'][2]', f[2]]));
     jpFields.forEach(([f, v]) => {
